@@ -8,7 +8,7 @@ import java.lang.StringBuilder;
 
 public class LogLine {
 
-    private static final String logEntryRegEx = "^([\\d.]+) (\\S+) (\\S+) \\[([\\w:/]+\\s[+\\-]\\d{4})\\] \"(.+?)\" (\\d{3}) (\\d+|-) \"(.*)\" \"(.*)\"$";
+    private static final String logEntryRegEx = "^([\\d\\.]+) (\\S+) (\\S+) \\[([\\w:/]+\\s[+\\-]\\d{4})\\] \"(.+?)\" (\\d{3}) (\\d+|-) \"(.*)\" \"(.*)\"$";
     private static final int logEntryGroups = 9;
     private static final Pattern logEntryPattern;
 
