@@ -4,6 +4,7 @@ import java.util.NoSuchElementException;
 import java.sql.*;
 import java.util.zip.GZIPInputStream;
 import java.util.regex.*;
+import java.util.Properties;
 
 /**
  * Apache-login parsija
@@ -16,14 +17,52 @@ public class Splitter {
 
     private static final String filenameRegex =
 	"^.*/(.*)/(.*)\\.\\d{4}-\\d{2}-\\d{2}\\.gz";
+
+    private String db_url;
+    private Properties db_config = new Properties();
+    private int maxReconnects;
+
+    /**
+     * Dynamic thingies to be done once per instance
+     */
+    public Splitter() throws Exception {
+	
+	final String db_file = "database.conf";
+
+	// Some default values
+	this.db_config.setProperty("allowMultiQueries","true");
+
+	// Reading config (overriding defaults if needed)
+	this.db_config.load(new InputStreamReader(new FileInputStream(db_file), "UTF-8"));
+
+	// Building URI for database
+	this.db_url = "jdbc:mysql://" + db_config.getProperty("hostname") + 
+	    "/" + db_config.getProperty("database");
+
+	// We are using database.conf for own configuration, too.
+	// TODO Maybe this should be in different Properties to avoid name clash. 
+	this.maxReconnects = Integer.parseInt(db_config.getProperty("max_reconnects"));
+	
+	// Constructing SQL line for default values
+	// int cur_game = Integer.parseInt(db_config.getProperty("game_id"));
+	// this.sqlInitQuery = "SET @cur_game = "+cur_game+";";
+    }
+
+    /**
+     * Gives a new connection statement. Establishes a new connection to the
+     * database.
+     */
+    public Statement newConnection() throws SQLException {
+	Connection conn = DriverManager.getConnection(db_url,db_config);
+	Statement stmt = conn.createStatement();
+	//stmt.execute(sqlInitQuery); // set some defaults
+	return stmt;
+    }
     
     public static void main(String args[]) throws Exception {
-	
-	Connection conn =
-	    DriverManager.getConnection("jdbc:mysql://130.234.169.15/ixonos?" +
-					"user=joell&password=hohfah3I");
 
-	Statement stmt = conn.createStatement();
+	Splitter me = new Splitter();
+	Statement stmt = me.newConnection();
 	//SQLBuilder sqlstr = new SQLBuilder(start);
 	SQLBuilder sqlstr_browser = new SQLBuilder(start_browser);
 	SQLBuilder sqlstr_ip = new SQLBuilder(start_ip);
