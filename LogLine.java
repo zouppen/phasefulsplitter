@@ -1,11 +1,11 @@
-import java.sql.Date;
 import java.util.Locale;
 import java.util.regex.*;
+import java.util.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.text.ParsePosition;
 import java.lang.StringBuilder;
-import java.sql.*;
+import java.sql.PreparedStatement;
 
 public class LogLine {
 
@@ -49,8 +49,7 @@ public class LogLine {
 	}
 
 	this.ip = matcher.group(1);
-	// Needs to be java.sql.Date, not java.Util.Date. Mangling the object.
-	this.date = new Date(apacheFormat.parse(matcher.group(4),position).getTime());
+	this.date = apacheFormat.parse(matcher.group(4),position);
 	if (position.getErrorIndex() != -1)
 	    throw new Exception("syntax error in date format.");
 	this.request = matcher.group(5);

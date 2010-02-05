@@ -17,6 +17,8 @@ public class Splitter {
     private String db_url;
     private Properties db_config = new Properties();
     private int maxReconnects;
+    // database id (because ARCHIVE engine doesn't support auto_increment.)
+    private int id;
 
     /**
      * Dynamic thingies to be done once per instance
@@ -39,6 +41,8 @@ public class Splitter {
 	// TODO Maybe this should be in different Properties to avoid name clash. 
 	this.maxReconnects = Integer.parseInt(db_config.getProperty("max_reconnects"));
 	
+	this.id = Integer.parseInt(db_config.getProperty("id","0"));
+	this.id++;
     }
 
     /**
@@ -55,28 +59,36 @@ public class Splitter {
 	Splitter me = new Splitter();
 	Connection conn = me.newConnection();
 	Pattern filenamePattern = Pattern.compile(filenameRegex);
-
-	// database id (because ARCHIVE engine doesn't support auto_increment.)
-	int id = 1;
-
+	
 	// Prepare insertion of rows
 	PreparedStatement stmt =
 	    conn.prepareStatement("INSERT weblog (id,ip,date,server,service,"+
 				  "request,response,bytes,referer,browser) "+
 				  "values(?,?,?,?,?,?,?,?,?,?)");
+	
+	Scanner fileNameScanner = new Scanner(System.in, "UTF-8");
+	String fileName;
 
-	for (String filename: args) {
-	    System.out.println(filename);
+	while (true) {
+	    try {
+		fileName = fileNameScanner.nextLine();
+	    } catch (NoSuchElementException foo) {
+		// End of file list
+		break;
+	    }
 
-	    Matcher matcher = filenamePattern.matcher(filename);
+	    // Print this as progress indicator
+	    System.out.println(fileName);
+
+	    Matcher matcher = filenamePattern.matcher(fileName);
 	    if (!matcher.matches() || matcher.groupCount() != 2) {
-		throw new Exception("Filename pattern is not clear. Must be hostname/service.year-month-day.gz");
+		throw new Exception("File name pattern is not clear. Must be hostname/service.year-month-day.gz");
 	    }
 	    
 	    String server = matcher.group(1);
 	    String service = matcher.group(2);
 
-	    InputStream in =new GZIPInputStream(new FileInputStream(filename));
+	    InputStream in =new GZIPInputStream(new FileInputStream(fileName));
 	    Scanner scanner = new Scanner(in, "UTF-8");
 	    int linenum = 1;
 	    String line = "";
@@ -88,21 +100,24 @@ public class Splitter {
 		    line = scanner.nextLine();
 		    LogLine entry = new LogLine(server,service,line);
 
-		    stmt.setInt(1,id); // because there's no auto_increment
+		    stmt.setInt(1,me.id); // because there's no auto_increment
 		    entry.putFields(stmt);
 		    stmt.execute();
 		    
 		    linenum++;
+		    me.id++;
 		}
 	    } catch (NoSuchElementException foo) {
 		// Tiedosto kaiketi loppu, kaikki ok.
 	    } catch (Exception e) {
-		System.err.println("Error at: "+filename+":"+linenum);
+		System.err.println("Error at: "+fileName+":"+linenum);
 		System.err.println("Content: "+line);
 		throw e;
 	    } finally {
 		scanner.close();
 	    }
 	}
+	// Useful information
+	System.out.println("Last id was "+me.id);
     }
 }
