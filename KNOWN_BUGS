@@ -1,0 +1,7 @@
+#1
+
+splitter reads filenames from args. problems with id because no auto_increment
+
+#2
+
+times get lost. maybe use setTime and no SQL dates (remove wrapping).

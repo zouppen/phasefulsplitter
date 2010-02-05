@@ -1,0 +1,4 @@
+How to run on Linux:
+
+export CLASSPATH=.:/usr/share/java/mysql-connector-java.jar
+find /your/files | xargs java Splitter

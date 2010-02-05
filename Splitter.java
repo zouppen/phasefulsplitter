@@ -11,10 +11,6 @@ import java.util.Properties;
  */
 public class Splitter {
 
-    //private static final String start = "INSERT weblog (server,service,ip,date,request,response,bytes,referer,browser) values ";
-    private static final String start_ip = "INSERT IGNORE ip (ip) values ";
-    private static final String start_browser = "INSERT IGNORE browser_raw (browser) values ";
-
     private static final String filenameRegex =
 	"^.*/(.*)/(.*)\\.\\d{4}-\\d{2}-\\d{2}\\.gz";
 
