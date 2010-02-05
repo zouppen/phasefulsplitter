@@ -1,10 +1,11 @@
-import java.util.Date;
+import java.sql.Date;
 import java.util.Locale;
 import java.util.regex.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.text.ParsePosition;
 import java.lang.StringBuilder;
+import java.sql.*;
 
 public class LogLine {
 
@@ -14,11 +15,13 @@ public class LogLine {
 
     private static final DateFormat apacheFormat;
     private static final DateFormat outputFormat;
-	
-    public String server;
-    public String service;
+    
+    // Keep in same order as in Splitter for clarity
+    // (id),ip,date,server,service,request,response,bytes,referer,browser
     public String ip;
     public Date date;
+    public String server;
+    public String service;
     public String request;
     public Integer response;
     public Integer bytes;
@@ -46,7 +49,8 @@ public class LogLine {
 	}
 
 	this.ip = matcher.group(1);
-	this.date = apacheFormat.parse(matcher.group(4),position);
+	// Needs to be java.sql.Date, not java.Util.Date. Mangling the object.
+	this.date = new Date(apacheFormat.parse(matcher.group(4),position).getTime());
 	if (position.getErrorIndex() != -1)
 	    throw new Exception("syntax error in date format.");
 	this.request = matcher.group(5);
@@ -61,6 +65,19 @@ public class LogLine {
 	    this.browser = matcher.group(9);
     }
 
+    public void putFields(PreparedStatement stmt) throws Exception {
+	// (id),ip,date,server,service,request,response,bytes,referer,browser
+	// 1st: id
+	stmt.setObject(2,ip);
+	stmt.setObject(3,date);
+	stmt.setObject(4,server);
+	stmt.setObject(5,service);
+	stmt.setObject(6,request);
+	stmt.setObject(7,response);
+	stmt.setObject(8,bytes);
+	stmt.setObject(9,referer);
+	stmt.setObject(10,browser);
+    }
 
     public String engineerDebug() {
 	return "IP: "+ this.ip +

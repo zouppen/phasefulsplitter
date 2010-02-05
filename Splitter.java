@@ -43,30 +43,31 @@ public class Splitter {
 	// TODO Maybe this should be in different Properties to avoid name clash. 
 	this.maxReconnects = Integer.parseInt(db_config.getProperty("max_reconnects"));
 	
-	// Constructing SQL line for default values
-	// int cur_game = Integer.parseInt(db_config.getProperty("game_id"));
-	// this.sqlInitQuery = "SET @cur_game = "+cur_game+";";
     }
 
     /**
      * Gives a new connection statement. Establishes a new connection to the
      * database.
      */
-    public Statement newConnection() throws SQLException {
+    public Connection newConnection() throws SQLException {
 	Connection conn = DriverManager.getConnection(db_url,db_config);
-	Statement stmt = conn.createStatement();
-	//stmt.execute(sqlInitQuery); // set some defaults
-	return stmt;
+	return conn;
     }
     
     public static void main(String args[]) throws Exception {
 
 	Splitter me = new Splitter();
-	Statement stmt = me.newConnection();
-	//SQLBuilder sqlstr = new SQLBuilder(start);
-	SQLBuilder sqlstr_browser = new SQLBuilder(start_browser);
-	SQLBuilder sqlstr_ip = new SQLBuilder(start_ip);
+	Connection conn = me.newConnection();
 	Pattern filenamePattern = Pattern.compile(filenameRegex);
+
+	// database id (because ARCHIVE engine doesn't support auto_increment.)
+	int id = 1;
+
+	// Prepare insertion of rows
+	PreparedStatement stmt =
+	    conn.prepareStatement("INSERT weblog (id,ip,date,server,service,"+
+				  "request,response,bytes,referer,browser) "+
+				  "values(?,?,?,?,?,?,?,?,?,?)");
 
 	for (String filename: args) {
 	    System.out.println(filename);
@@ -83,34 +84,17 @@ public class Splitter {
 	    Scanner scanner = new Scanner(in, "UTF-8");
 	    int linenum = 1;
 	    String line = "";
+
+	    // Let's prepare INSERT request
 	    
 	    try {
 		while (true) {
 		    line = scanner.nextLine();
 		    LogLine entry = new LogLine(server,service,line);
-		    //Appender ap_ip = new LineAppender(entry);
-		    Appender ap_ip = new IPAppender(entry);
-		    Appender ap_browser = new BrowserAppender(entry);
 
-		    //sqlstr.addElement_browser(entry);
-		    sqlstr_ip.addElement(ap_ip);
-		    sqlstr_browser.addElement(ap_browser);
-
-		    if ((linenum % 100) == 0) {
-			String command = sqlstr_ip.toString();
-			if (!"".equals(command)) {
-			    stmt.executeUpdate(command);
-			}
-
-			command = sqlstr_browser.toString();
-			if (!"".equals(command)) {
-			    stmt.executeUpdate(command);
-			}
-			
-			//sqlstr.clear();
-			sqlstr_ip.clear();
-			sqlstr_browser.clear();
-		    }
+		    stmt.setInt(1,id); // because there's no auto_increment
+		    entry.putFields(stmt);
+		    stmt.execute();
 		    
 		    linenum++;
 		}
@@ -122,30 +106,7 @@ public class Splitter {
 		throw e;
 	    } finally {
 		scanner.close();
-		
-		// One more time, flush the sql buffer
-		String command = sqlstr_ip.toString();
-		if (!"".equals(command)) {
-		    stmt.executeUpdate(command);
-		}
-		
-		command = sqlstr_browser.toString();
-		if (!"".equals(command)) {
-		    stmt.executeUpdate(command);
-		}
-		
-		//sqlstr.clear();
-		sqlstr_ip.clear();
-		sqlstr_browser.clear();
 	    }
 	}
-    }
-
-    private static ResultSet getEmptyResult(Statement stmt)
-	throws java.sql.SQLException {
-	
-	ResultSet koe = stmt.executeQuery("select * from weblog limit 0;");
-	koe.moveToInsertRow();
-	return koe;
     }
 }
