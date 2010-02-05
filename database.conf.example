@@ -1,0 +1,5 @@
+hostname=my.server.org
+user=me
+password=secret
+database=loglog
+max_reconnects=3
