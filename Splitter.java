@@ -20,6 +20,7 @@ public class Splitter {
     private int maxReconnects;
     // database id (because ARCHIVE engine doesn't support auto_increment.)
     private int id;
+    private int file_counter = 0;
     private static Logger logger = Logger.getLogger("splitter");
 
     /**
@@ -86,7 +87,8 @@ public class Splitter {
 	    }
 
 	    // Print this as progress indicator
-	    logger.info("Processing file: "+fileName);
+	    logger.info("Processing file: #"+ (++me.file_counter)+":"+
+			fileName);
 
 	    Matcher matcher = filenamePattern.matcher(fileName);
 	    if (!matcher.matches() || matcher.groupCount() != 2) {
