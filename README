@@ -10,7 +10,8 @@ the biggest id number in your database. Otherwise the log reader
 (Splitter) will start from id 1, which is definitely not what you want
 if you have rows already in your database.
 
-You'll also need mysql support for Java. It's part of Debian, so in Debian, you just need to get it:
+You'll also need mysql support for Java. It's part of Debian, so in
+Debian, you just need to get it:
 
 # apt-get install libmysql-java 
 
@@ -21,3 +22,8 @@ temporary file list file and redirect its contents to Splitter with
 
 # export CLASSPATH=.:/usr/share/java/mysql-connector-java.jar
 # find /your/files | java Splitter
+
+Pedantic users may have a file list around and they want to get the
+output to a log file, too:
+
+# java Splitter <log_access-final.txt | tee splitter.log
