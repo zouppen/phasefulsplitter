@@ -1,4 +1,23 @@
 How to run on Linux:
 
-export CLASSPATH=.:/usr/share/java/mysql-connector-java.jar
-find /your/files | xargs java Splitter
+Copy the example configuration file and modify it to your needs:
+
+# cp database.conf.example database.conf
+# emacs database.conf   # or nano, vim, ...
+
+If you need to restart the processing, you may want to set last_id to
+the biggest id number in your database. Otherwise the log reader
+(Splitter) will start from id 1, which is definitely not what you want
+if you have rows already in your database.
+
+You'll also need mysql support for Java. It's part of Debian, so in Debian, you just need to get it:
+
+# apt-get install libmysql-java 
+
+You are now ready to run this thing. Make sure you've got some log
+files around and pipe the file names to Splitter with find or just a
+temporary file list file and redirect its contents to Splitter with
+'<'.
+
+# export CLASSPATH=.:/usr/share/java/mysql-connector-java.jar
+# find /your/files | java Splitter

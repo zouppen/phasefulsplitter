@@ -5,6 +5,7 @@ import java.sql.*;
 import java.util.zip.GZIPInputStream;
 import java.util.regex.*;
 import java.util.Properties;
+import java.util.logging.*;
 
 /**
  * Apache-login parsija
@@ -19,27 +20,31 @@ public class Splitter {
     private int maxReconnects;
     // database id (because ARCHIVE engine doesn't support auto_increment.)
     private int id;
+    private static Logger logger = Logger.getLogger("splitter");
 
     /**
      * Dynamic thingies to be done once per instance
      */
     public Splitter() throws Exception {
-	
+
 	final String db_file = "database.conf";
 
 	// Some default values
 	this.db_config.setProperty("allowMultiQueries","true");
 
 	// Reading config (overriding defaults if needed)
-	this.db_config.load(new InputStreamReader(new FileInputStream(db_file), "UTF-8"));
+	this.db_config.load(new InputStreamReader(new FileInputStream(db_file),
+						  "UTF-8"));
 
 	// Building URI for database
 	this.db_url = "jdbc:mysql://" + db_config.getProperty("hostname") + 
 	    "/" + db_config.getProperty("database");
 
 	// We are using database.conf for own configuration, too.
-	// TODO Maybe this should be in different Properties to avoid name clash. 
-	this.maxReconnects = Integer.parseInt(db_config.getProperty("max_reconnects"));
+	// TODO Maybe this should be in different Properties to avoid
+	// name clash.
+	this.maxReconnects =
+	    Integer.parseInt(db_config.getProperty("max_reconnects"));
 	
 	this.id = Integer.parseInt(db_config.getProperty("id","0"));
 	this.id++;
@@ -69,6 +74,9 @@ public class Splitter {
 	Scanner fileNameScanner = new Scanner(System.in, "UTF-8");
 	String fileName;
 
+	logger.info("Initialization ready, starting to read a file list from "+
+		    "stdin.");
+
 	while (true) {
 	    try {
 		fileName = fileNameScanner.nextLine();
@@ -78,11 +86,14 @@ public class Splitter {
 	    }
 
 	    // Print this as progress indicator
-	    System.out.println(fileName);
+	    logger.info("Processing file: "+fileName);
 
 	    Matcher matcher = filenamePattern.matcher(fileName);
 	    if (!matcher.matches() || matcher.groupCount() != 2) {
-		throw new Exception("File name pattern is not clear. Must be hostname/service.year-month-day.gz");
+		logger.severe("Error in file name pattern. Must be "+
+			      "hostname/service.year-month-day.gz but is '"+
+			      fileName+"'.");
+		throw new Exception("File name pattern is not clear. ");
 	    }
 	    
 	    String server = matcher.group(1);
@@ -110,14 +121,14 @@ public class Splitter {
 	    } catch (NoSuchElementException foo) {
 		// Tiedosto kaiketi loppu, kaikki ok.
 	    } catch (Exception e) {
-		System.err.println("Error at: "+fileName+":"+linenum);
-		System.err.println("Content: "+line);
+		logger.severe("Error at: "+fileName+":"+linenum);
+		logger.severe("Errorneous line is: "+line);
 		throw e;
 	    } finally {
 		scanner.close();
 	    }
 	}
 	// Useful information
-	System.out.println("Last id was "+me.id);
+	logger.info("Successfully processed given files. Last id was "+me.id);
     }
 }
