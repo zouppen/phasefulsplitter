@@ -3,3 +3,4 @@ user=me
 password=secret
 database=loglog
 max_reconnects=3
+#last_id=0
