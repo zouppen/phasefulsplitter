@@ -14,7 +14,8 @@ public class Splitter {
 
     private static final String filenameRegex =
 	"^.*/(.*)/(.*)\\.\\d{4}-\\d{2}-\\d{2}\\.gz";
-
+    Pattern filenamePattern = Pattern.compile(filenameRegex);
+    
     private String db_url;
     private Properties db_config = new Properties();
     private int maxReconnects;
@@ -22,6 +23,8 @@ public class Splitter {
     private int id;
     private int file_counter = 0;
     private static Logger logger = Logger.getLogger("splitter");
+    private Connection conn; // database connection
+    private PreparedStatement stmt; // Prepared for speed and convenience.
 
     /**
      * Dynamic thingies to be done once per instance
@@ -49,34 +52,28 @@ public class Splitter {
 	
 	this.id = Integer.parseInt(db_config.getProperty("id","0"));
 	this.id++;
+	
+	// Opening database connection
+	this.newConnection();
     }
 
     /**
      * Gives a new connection statement. Establishes a new connection to the
      * database.
      */
-    public Connection newConnection() throws SQLException {
-	Connection conn = DriverManager.getConnection(db_url,db_config);
-	return conn;
-    }
-    
-    public static void main(String args[]) throws Exception {
+    public void newConnection() throws SQLException {
+	this.conn = DriverManager.getConnection(db_url,db_config);
 
-	Splitter me = new Splitter();
-	Connection conn = me.newConnection();
-	Pattern filenamePattern = Pattern.compile(filenameRegex);
-	
 	// Prepare insertion of rows
-	PreparedStatement stmt =
+	this.stmt =
 	    conn.prepareStatement("INSERT weblog (id,ip,date,server,service,"+
 				  "request,response,bytes,referer,browser) "+
 				  "values(?,?,?,?,?,?,?,?,?,?)");
 	
-	Scanner fileNameScanner = new Scanner(System.in, "UTF-8");
-	String fileName;
+    }
 
-	logger.info("Initialization ready, starting to read a file list from "+
-		    "stdin.");
+    public void process(Scanner fileNameScanner) throws Exception{
+	String fileName;
 
 	while (true) {
 	    try {
@@ -87,15 +84,12 @@ public class Splitter {
 	    }
 
 	    // Print this as progress indicator
-	    logger.info("Processing file: #"+ (++me.file_counter)+":"+
+	    logger.info("Processing file: #"+ (++this.file_counter)+":"+
 			fileName);
 
 	    Matcher matcher = filenamePattern.matcher(fileName);
 	    if (!matcher.matches() || matcher.groupCount() != 2) {
-		logger.severe("Error in file name pattern. Must be "+
-			      "hostname/service.year-month-day.gz but is '"+
-			      fileName+"'.");
-		throw new Exception("File name pattern is not clear. ");
+		throw new FileNameException(fileName);
 	    }
 	    
 	    String server = matcher.group(1);
@@ -105,31 +99,48 @@ public class Splitter {
 	    Scanner scanner = new Scanner(in, "UTF-8");
 	    int linenum = 1;
 	    String line = "";
-
-	    // Let's prepare INSERT request
 	    
 	    try {
 		while (true) {
 		    line = scanner.nextLine();
 		    LogLine entry = new LogLine(server,service,line);
 
-		    stmt.setInt(1,me.id); // because there's no auto_increment
-		    entry.putFields(stmt);
-		    stmt.execute();
+		    stmt.setInt(1,this.id); // because there's no auto_increment
+		    entry.putFields(this.stmt);
+		    this.stmt.execute();
 		    
 		    linenum++;
-		    me.id++;
+		    this.id++;
 		}
 	    } catch (NoSuchElementException foo) {
 		// Tiedosto kaiketi loppu, kaikki ok.
 	    } catch (Exception e) {
-		logger.severe("Error at: "+fileName+":"+linenum);
 		logger.severe("Errorneous line is: "+line);
-		throw e;
+		throw new SyntaxException(fileName,linenum,e);
 	    } finally {
 		scanner.close();
 	    }
 	}
+    }
+    
+    public static void main(String args[]) throws Exception {
+
+	Splitter me = new Splitter();
+	Scanner fileNameScanner = new Scanner(System.in, "UTF-8");
+
+	logger.info("Initialization ready, starting to read a file list from "+
+		    "stdin.");
+
+	// TODO Open an error log and write there...
+
+	try {
+	    me.process(fileNameScanner);
+	} catch (FileNameException e) {
+	    // TODO
+	} catch (SyntaxException e) {
+	    // TODO
+	}
+
 	// Useful information
 	logger.info("Successfully processed given files. Last id was "+me.id);
     }

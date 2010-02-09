@@ -2,7 +2,8 @@ import java.lang.Exception;
 
 public class SyntaxException extends Exception {
 
-    private int line;
+    public String file;
+    public int line;
     
     SyntaxException(String file, int line) {
 	this(file,line,null);
@@ -14,7 +15,4 @@ public class SyntaxException extends Exception {
 	this.line = line;
     }
 
-    int getLineNumber() {
-	return line;
-    }
 }
