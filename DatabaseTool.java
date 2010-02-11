@@ -56,9 +56,9 @@ public class DatabaseTool {
 	this.conn = DriverManager.getConnection(db_url,db_config);
 
 	// Prepare insertion and query of rows
-	this.inStmt = conn.prepareStatement(this.p.getInStmt());
-	this.outStmt = conn.prepareStatement(this.p.getOutStmt());
-	this.errStmt = conn.prepareStatement(this.p.getErrStmt());
+	this.inStmt = conn.prepareStatement(this.p.inStmt);
+	this.outStmt = conn.prepareStatement(this.p.outStmt);
+	this.errStmt = conn.prepareStatement(this.p.errStmt);
     }
 
     public void processTable() throws Exception{

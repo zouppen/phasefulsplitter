@@ -12,12 +12,11 @@ import java.sql.PreparedStatement;
 public class FileListPhase extends Phase {
     
     // Public attributes for getting SQL queries
-    private String inStmt =
-	"\"SELECT \"log_access.txt\"";
-    private String outStmt =
-	"INSERT phase_1_data (file) VALUES(?)";
-    private String errStmt =
-	"INSERT phase_0_error ()";
+    public FileListPhase() {
+	inStmt = "SELECT \"log_access.txt\"";
+	outStmt = "INSERT phase_1_data (file) VALUES(?)";
+	errStmt = "INSERT phase_0_error ()";
+    }
 
     /**
      * Reads a file list.
