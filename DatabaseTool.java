@@ -13,7 +13,8 @@ public class DatabaseTool {
     private int maxReconnects;
     public static Logger logger = Logger.getLogger("splitter");
     private Connection conn; // database connection
-    private Phase p;    
+    private Phase p;
+    private int currentID = -1;
 
     // Prepared for speed and convenience.
     private PreparedStatement inStmt, outStmt, errStmt;
@@ -44,7 +45,13 @@ public class DatabaseTool {
 	
 	this.p = p;
 
-	// Opening database connection
+	// This is for handling SIGUSR1 signal which produces a nice
+	// progress view for long-lasting runs. This uses Oracle's
+	// Java extension which may not be a part of your JRE. If so,
+	// just comment out next line to disable that feature.
+        ProgressSignalHandler.install(this);
+
+	// Opening the database connection
 	this.newConnection();
     }
 
@@ -64,17 +71,30 @@ public class DatabaseTool {
     public void processTable() throws Exception{
 	
 	ResultSet rows = this.inStmt.executeQuery();
-
+	this.currentID = 0;
+	
 	while (rows.next()) {
+	    this.currentID++;
 	    try {
 		if (p.process(rows,outStmt))
 		    outStmt.executeUpdate();
 	    } catch (Exception e) {
 		// Something failed with processing.
 		// If this fails, let the exception fly out.
+		this.logger.warning("Row number: "+this.currentID+" failed.");
+
 		if (p.error(rows,e,errStmt))
 		    errStmt.executeUpdate();
 	    }
 	}
+
+	this.logger.info("Done! Processed "+this.currentID+" rows.");
+    }
+
+    public void printProgress() {
+	if (this.currentID == -1)
+	    this.logger.info("Initialization not yet ready.");
+	else
+	    this.logger.info("Processing row number "+this.currentID);
     }
 }
