@@ -22,7 +22,7 @@ public class LogLinePhase extends Phase {
 
     // Public attributes for getting SQL queries
     public LogLinePhase() {
-	inStmt = "SELECT text from file";
+	inStmt = "SELECT file from phase_1_data";
 	outStmt = "INSERT phase_2_data (server,service,line) VALUES(?,?,?)";
 	errStmt = "INSERT phase_1_error (error,file) VALUES (?,?)";
     }
