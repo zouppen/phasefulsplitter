@@ -9,8 +9,16 @@ import java.util.NoSuchElementException;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 
-public class FileListPhase implements Phase {
+public class FileListPhase extends Phase {
     
+    // Public attributes for getting SQL queries
+    private String inStmt =
+	"\"SELECT \"log_access.txt\"";
+    private String outStmt =
+	"INSERT phase_1_data (file) VALUES(?)";
+    private String errStmt =
+	"INSERT phase_0_error ()";
+
     /**
      * Reads a file list.
      *
@@ -44,18 +52,14 @@ public class FileListPhase implements Phase {
      * @param out Error row to produce. Please note that this may
      *        contain old data. You should reset all fields.
      */
-    public void error(ResultSet in, Exception e, PreparedStatement err) throws Exception {
+    /*public void error(ResultSet in, Exception e, PreparedStatement err) throws Exception {
 	// No need to cope with errors, aborting
 	throw new Exception("Error adding line to the database",e);
-    }
+	}*/
 
     public static void main(String[] args) throws Exception {
 
-	DatabaseTool tool =
-	    new DatabaseTool("SELECT \"log_access.txt\"",
-			     "INSERT phase_1_data (file) VALUES(?)",
-			     "INSERT phase_0_error ()");
-	
-	tool.processTable(new FileListPhase());
+	DatabaseTool tool = new DatabaseTool(new FileListPhase());
+	tool.processTable();
     }
 }

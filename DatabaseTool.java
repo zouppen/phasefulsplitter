@@ -13,15 +13,15 @@ public class DatabaseTool {
     private int maxReconnects;
     public static Logger logger = Logger.getLogger("splitter");
     private Connection conn; // database connection
-    
+    private Phase p;    
+
     // Prepared for speed and convenience.
-    private String inStmtStr, outStmtStr, errStmtStr;
     private PreparedStatement inStmt, outStmt, errStmt;
 
     /**
      * Dynamic thingies to be done once per instance
      */
-    public DatabaseTool(String inputQuery, String outputQuery, String errorOutputQuery) throws Exception {
+    public DatabaseTool(Phase p) throws Exception {
 
 	final String db_file = "database.conf";
 
@@ -42,10 +42,7 @@ public class DatabaseTool {
 	this.maxReconnects =
 	    Integer.parseInt(db_config.getProperty("max_reconnects"));
 	
-	// Setting queries
-	this.inStmtStr = inputQuery;
-	this.outStmtStr = outputQuery;
-	this.errStmtStr = errorOutputQuery;
+	this.p = p;
 
 	// Opening database connection
 	this.newConnection();
@@ -59,12 +56,12 @@ public class DatabaseTool {
 	this.conn = DriverManager.getConnection(db_url,db_config);
 
 	// Prepare insertion and query of rows
-	this.inStmt = conn.prepareStatement(inStmtStr);
-	this.outStmt = conn.prepareStatement(outStmtStr);
-	this.errStmt = conn.prepareStatement(errStmtStr);
+	this.inStmt = conn.prepareStatement(this.p.getInStmt());
+	this.outStmt = conn.prepareStatement(this.p.getOutStmt());
+	this.errStmt = conn.prepareStatement(this.p.getErrStmt());
     }
 
-    public void processTable(Phase p) throws Exception{
+    public void processTable() throws Exception{
 	
 	ResultSet rows = this.inStmt.executeQuery();
 
@@ -80,4 +77,4 @@ public class DatabaseTool {
 	    }
 	}
     }
- }
+}
