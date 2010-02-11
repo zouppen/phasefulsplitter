@@ -4,7 +4,7 @@ import sun.misc.SignalHandler;
 public class ProgressSignalHandler implements SignalHandler {
 
     private SignalHandler oldHandler;
-    private static Signal sigUSR1 = new Signal("USR1");
+    private static Signal sigUSR = new Signal("USR2");
     private DatabaseTool callback;
     
     /**
@@ -16,18 +16,18 @@ public class ProgressSignalHandler implements SignalHandler {
      */
     public static SignalHandler install(DatabaseTool callback) {
         ProgressSignalHandler instance = new ProgressSignalHandler();
-        instance.oldHandler = Signal.handle(sigUSR1, instance);
+        instance.oldHandler = Signal.handle(sigUSR, instance);
 	instance.callback = callback;
         return instance;
     }
-
+    
     /**
      * Called automatically by JRE.
      */
     public void handle(Signal signal) {
 	
         try {
-	    if (sigUSR1.equals(signal))
+	    if (sigUSR.equals(signal))
 		callback.printProgress();
 
             // Chain back to previous handler, if one exists

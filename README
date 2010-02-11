@@ -21,9 +21,21 @@ temporary file list file and redirect its contents to Splitter with
 '<'.
 
 # export CLASSPATH=.:/usr/share/java/mysql-connector-java.jar
-# find /your/files | java Splitter
+# java FileListPhase
 
 Pedantic users may have a file list around and they want to get the
 output to a log file, too:
 
 # java Splitter <log_access-final.txt | tee splitter.log
+
+How to see progress
+===================
+
+When running long jobs, you may want to see how many lines are
+processed. First, find the process id of JVM running apacheparser and
+execute:
+
+$ kill -USR2 PID
+
+It sends USR2 signal to JVM. Apacheparser traps the signal and then
+progress status is dumped to stdout.
