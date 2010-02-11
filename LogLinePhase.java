@@ -78,7 +78,8 @@ public class LogLinePhase extends Phase {
      * @returns Always true because it has a new row ready.
      */
     public boolean error(ResultSet in, Exception e, PreparedStatement err) throws Exception {
-	if (e instanceof FileNameException) {
+	if (e instanceof FileNameException ||
+	    e instanceof java.io.FileNotFoundException) {
 	    // This error can be post-processed
 	    err.setString(1,e.getMessage());
 	    err.setString(2,in.getString(1));
