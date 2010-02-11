@@ -21,7 +21,7 @@ public abstract class Phase {
      * @param in Input row to process
      * @param out Output row to produce. Please note this may contain
      *            old data. You should reset all fields.
-     * @returns True if it has set statement ready for excecution.
+     * @returns True if it has set statement ready for execution.
      */
     abstract boolean process(ResultSet in, PreparedStatement out) throws Exception;
 
@@ -35,8 +35,9 @@ public abstract class Phase {
      * @param in Input row which contains the row that was tried to process.
      * @param out Error row to produce. Please note that this may
      *        contain old data. You should reset all fields.
+     * @returns True if it has set error statement ready for execution.
      */
-    public void error(ResultSet in, Exception e, PreparedStatement err) throws Exception {
+    public boolean error(ResultSet in, Exception e, PreparedStatement err) throws Exception {
 	// No need to cope with errors, aborting
 	throw new Exception("Error processing a row",e);
     }

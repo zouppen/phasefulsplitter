@@ -72,8 +72,8 @@ public class DatabaseTool {
 	    } catch (Exception e) {
 		// Something failed with processing.
 		// If this fails, let the exception fly out.
-		p.error(rows,e,errStmt);
-		errStmt.executeUpdate();
+		if (p.error(rows,e,errStmt))
+		    errStmt.executeUpdate();
 	    }
 	}
     }

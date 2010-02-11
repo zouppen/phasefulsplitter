@@ -35,7 +35,7 @@ public class FileListPhase extends Phase {
 	    while (true) {
 		String filename = fileListScanner.nextLine();
 		out.setString(1,filename);
-		out.executeQuery();
+		out.executeUpdate();
 	    }
 	} catch (NoSuchElementException foo) {
 	    // End of file list reached, everything is OK.
