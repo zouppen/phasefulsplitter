@@ -49,7 +49,7 @@ public class FileListPhase implements Phase {
 	throw new Exception("Error adding line to the database",e);
     }
 
-    public static void main() throws Exception {
+    public static void main(String[] args) throws Exception {
 
 	DatabaseTool tool =
 	    new DatabaseTool("SELECT \"log_access.txt\"",
