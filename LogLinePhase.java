@@ -24,7 +24,7 @@ public class LogLinePhase extends Phase {
     public LogLinePhase() {
 	inStmt = "SELECT text from file";
 	outStmt = "INSERT phase_2_data (server,service,line) VALUES(?,?,?)";
-	errStmt = "INSERT phase_1_error (error,text) VALUES (?,?)";
+	errStmt = "INSERT phase_1_error (error,line) VALUES (?,?)";
     }
 
     /**
