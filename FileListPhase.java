@@ -3,6 +3,9 @@
  * information about the interface, see its documentation.
  */
 
+import java.io.FileInputStream;
+import java.util.Scanner;
+import java.util.NoSuchElementException;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 
@@ -16,8 +19,22 @@ public class FileListPhase implements Phase {
      *            old data. You should reset all fields.
      * @returns True if it has set statement ready for excecution.
      */
-    public void process(ResultSet in, PreparedStatement out) {
-	// TODO
+    public boolean process(ResultSet in, PreparedStatement out) throws Exception {
+	String listFileName = in.getString(1);
+	Scanner fileListScanner =
+	    new Scanner(new FileInputStream(listFileName), "UTF-8");
+	
+	try {
+	    while (true) {
+		String filename = fileListScanner.nextLine();
+		out.setString(1,filename);
+		out.executeQuery();
+	    }
+	} catch (NoSuchElementException foo) {
+	    // End of file list reached, everything is OK.
+	}   
+
+	return false; // Statements are already executed.
     }
 
     /**
@@ -27,8 +44,9 @@ public class FileListPhase implements Phase {
      * @param out Error row to produce. Please note that this may
      *        contain old data. You should reset all fields.
      */
-    public void error(ResultSet in, Exception e, PreparedStatement err) {
-	// TODO
+    public void error(ResultSet in, Exception e, PreparedStatement err) throws Exception {
+	// No need to cope with errors, aborting
+	throw new Exception("Error adding line to the database",e);
     }
 
     public static void main() throws Exception {

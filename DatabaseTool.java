@@ -1,6 +1,7 @@
 import java.io.*;
 import java.sql.*;
 import java.util.logging.*;
+import java.util.Properties;
 
 /**
  * Apache-login parsija
@@ -42,9 +43,9 @@ public class DatabaseTool {
 	    Integer.parseInt(db_config.getProperty("max_reconnects"));
 	
 	// Setting queries
-	this.inStmt = inputQuery;
-	this.outStmt = outputQuery;
-	this.errStmt = errorOutputQuery;
+	this.inStmtStr = inputQuery;
+	this.outStmtStr = outputQuery;
+	this.errStmtStr = errorOutputQuery;
 
 	// Opening database connection
 	this.newConnection();
@@ -63,7 +64,7 @@ public class DatabaseTool {
 	this.errStmt = conn.prepareStatement(errStmtStr);
     }
 
-    public void processTable(Processor p) throws Exception{
+    public void processTable(Phase p) throws Exception{
 	
 	ResultSet rows = this.inStmt.executeQuery();
 

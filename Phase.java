@@ -18,7 +18,7 @@ public interface Phase {
      *            old data. You should reset all fields.
      * @returns True if it has set statement ready for excecution.
      */
-    public boolean process(ResultSet in, PreparedStatement out);
+    public boolean process(ResultSet in, PreparedStatement out) throws Exception;
 
     /**
      * This is called when processing or the insert query after that
@@ -30,5 +30,5 @@ public interface Phase {
      * @param out Error row to produce. Please note that this may
      *        contain old data. You should reset all fields.
      */
-    public void error(ResultSet in, Exception e, PreparedStatement err);
+    public void error(ResultSet in, Exception e, PreparedStatement err) throws Exception;
 }
