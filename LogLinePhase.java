@@ -1,5 +1,5 @@
 /**
- * Class for processing phase one, reading log files to the
+ * Class for processing phase two, reading log files to the
  * database. For more information about the interface, see its
  * documentation.
  */
@@ -8,23 +8,18 @@ import java.io.InputStream;
 import java.io.FileInputStream;
 import java.util.Scanner;
 import java.util.NoSuchElementException;
-import java.util.regex.*;
 import java.util.zip.GZIPInputStream;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 
 public class LogLinePhase extends Phase {
     
-    private static final String fileNameRE =
-	"^.*/(.*)/(.*)\\.\\d{4}-\\d{2}-\\d{2}\\.gz";
-    private static final Pattern fileNamePattern = Pattern.compile(fileNameRE);
-    private static final int fileNameGroups = 2;
-
     // Public attributes for getting SQL queries
     public LogLinePhase() {
-	inStmt = "SELECT file from phase_1_data";
-	outStmt = "INSERT phase_2_data (server,service,line) VALUES(?,?,?)";
-	errStmt = "INSERT phase_1_error (error,file) VALUES (?,?)";
+	inStmt = "SELECT id,file from phase_2_data as phase, site "+
+	    "where phase.server=site.server and phase.service=site.service";
+	outStmt = "INSERT DELAYED phase_3_data (site_id,line) VALUES(?,?)";
+	errStmt = "INSERT DELAYED phase_2_error (error,site_id,file) VALUES (?,?,?)";
     }
 
     /**
@@ -37,28 +32,20 @@ public class LogLinePhase extends Phase {
      */
     public boolean process(ResultSet in, PreparedStatement out) throws Exception {
 	
-	String fileName = in.getString(1);
-	Matcher matcher = fileNamePattern.matcher(fileName);
-	if (!matcher.matches() || matcher.groupCount() != fileNameGroups) {
-	    throw new FileNameException(fileName);
-	}
+	String fileName = in.getString(2);
 	    
-	out.setString(1,matcher.group(1)); // server name
-	out.setString(2,matcher.group(2)); // service name
-	
 	InputStream inSt = new GZIPInputStream(new FileInputStream(fileName));
 	Scanner scanner = new Scanner(inSt, "UTF-8");
-	int linenum = 1;
 	String line = "";
-	    
+	
+	out.setInt(1,in.getInt(1)); // Site id is the same in every row.
+
 	try {
 	    while (true) {
 		line = scanner.nextLine();
 		
 		out.setString(3,line);
 		out.executeUpdate(); // Push a new line to the database.
-		
-		linenum++;
 	    }
 	} catch (NoSuchElementException foo) {
 	    // Tiedosto kaiketi loppu, kaikki ok.
@@ -78,11 +65,11 @@ public class LogLinePhase extends Phase {
      * @returns Always true because it has a new row ready.
      */
     public boolean error(ResultSet in, Exception e, PreparedStatement err) throws Exception {
-	if (e instanceof FileNameException ||
-	    e instanceof java.io.FileNotFoundException) {
+	if (e instanceof java.io.FileNotFoundException) {
 	    // This error can be post-processed
 	    err.setString(1,e.getMessage());
-	    err.setString(2,in.getString(1));
+	    err.setInt(2,in.getInt(1));
+	    err.setString(3,in.getString(2));
 	    return true;
 	}
 

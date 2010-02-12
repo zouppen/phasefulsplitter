@@ -88,6 +88,11 @@ public class DatabaseTool {
 	    }
 	}
 
+	if (this.p.endStmt != null) {
+	    this.logger.info("Finalizing...");
+	    this.conn.prepareStatement(this.p.endStmt).executeUpdate();
+	}
+
 	this.logger.info("Done! Processed "+this.currentID+" rows.");
     }
 

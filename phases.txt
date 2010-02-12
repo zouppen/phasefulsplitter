@@ -1,0 +1,15 @@
+First, prepare all tables:
+
+$ mysql -u root -p database_name <initial.sql
+
+Phase zero: Reading the file list to the database. After this phase phase_1_data will contain file names and some extra information extracted from the file names.
+
+$ java FileListPhase file_list.txt
+
+Phase one: Extract file information like server and site name from file
+
+$ java SitePhase 
+
+Phase two: Reading the file contents
+
+$ java LogLinePhase

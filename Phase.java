@@ -10,9 +10,11 @@ import java.sql.PreparedStatement;
 public abstract class Phase {
 
     // Java doesn't support final in abstract classes. These should be final.
-    public String inStmt;
-    public String outStmt;
-    public String errStmt;
+    public String inStmt; // Query which return all relevant rows and columns
+    public String outStmt; // Update or insert statement used in process()
+    public String errStmt; // Same as with above but with error()
+    public String endStmt; // Query to execute at the end of the updates
+                           // (optional).
 
     /**
      * This is called every time a new line has been read. Takes a row

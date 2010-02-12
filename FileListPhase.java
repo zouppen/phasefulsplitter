@@ -10,12 +10,15 @@ import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 
 public class FileListPhase extends Phase {
+
+    String inFile;
     
     // Public attributes for getting SQL queries
-    public FileListPhase() {
-	inStmt = "SELECT \"log_access.txt\"";
-	outStmt = "INSERT phase_1_data (file) VALUES(?)";
+    public FileListPhase(String inFile) {
+	inStmt = "SELECT 'nothing'";
+	outStmt = "INSERT DELAYED phase_1_data (file) VALUES(?)";
 	errStmt = "INSERT phase_0_error ()";
+	this.inFile = inFile;
     }
 
     /**
@@ -23,13 +26,12 @@ public class FileListPhase extends Phase {
      *
      * @param in Input row to process
      * @param out Output row to produce. Please note this may contain
-     *            old data. You should reset all fields.
+     *            old data. You may want to reset all fields.
      * @returns True if it has set statement ready for excecution.
      */
     public boolean process(ResultSet in, PreparedStatement out) throws Exception {
-	String listFileName = in.getString(1);
 	Scanner fileListScanner =
-	    new Scanner(new FileInputStream(listFileName), "UTF-8");
+	    new Scanner(new FileInputStream(this.inFile), "UTF-8");
 	
 	try {
 	    while (true) {
@@ -44,21 +46,9 @@ public class FileListPhase extends Phase {
 	return false; // Statements are already executed.
     }
 
-    /**
-     * In case of an error in insertion. 
-     *
-     * @param in Input row which contains the row that was tried to process.
-     * @param out Error row to produce. Please note that this may
-     *        contain old data. You should reset all fields.
-     */
-    /*public void error(ResultSet in, Exception e, PreparedStatement err) throws Exception {
-	// No need to cope with errors, aborting
-	throw new Exception("Error adding line to the database",e);
-	}*/
-
     public static void main(String[] args) throws Exception {
 
-	DatabaseTool tool = new DatabaseTool(new FileListPhase());
+	DatabaseTool tool = new DatabaseTool(new FileListPhase(args[1]));
 	tool.processTable();
     }
 }
