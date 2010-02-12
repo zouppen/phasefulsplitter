@@ -48,7 +48,7 @@ public class FileListPhase extends Phase {
 
     public static void main(String[] args) throws Exception {
 
-	DatabaseTool tool = new DatabaseTool(new FileListPhase(args[1]));
+	DatabaseTool tool = new DatabaseTool(new FileListPhase(args[0]));
 	tool.processTable();
     }
 }

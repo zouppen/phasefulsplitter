@@ -44,7 +44,7 @@ public class LogLinePhase extends Phase {
 	    while (true) {
 		line = scanner.nextLine();
 		
-		out.setString(3,line);
+		out.setString(2,line);
 		out.executeUpdate(); // Push a new line to the database.
 	    }
 	} catch (NoSuchElementException foo) {

@@ -21,7 +21,7 @@ public class SitePhase extends Phase {
 	outStmt = "INSERT phase_2_data (server,service,file) VALUES(?,?,?)";
 	errStmt = "INSERT DELAYED phase_1_error (error,file) VALUES (?,?)";
 	endStmt = "INSERT site (server,service) "+
-	    "SELECT DISTINCT (server,service) from phase_2_data";
+	    "SELECT DISTINCT server,service from phase_2_data";
     }
 
     /**
