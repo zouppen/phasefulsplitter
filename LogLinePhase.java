@@ -20,6 +20,10 @@ public class LogLinePhase extends Phase {
 	    "where phase.server=site.server and phase.service=site.service";
 	outStmt = "INSERT DELAYED phase_3_data (site_id,line) VALUES(?,?)";
 	errStmt = "INSERT DELAYED phase_2_error (error,site_id,file) VALUES (?,?,?)";
+
+	//when reprocessing in case of an error, uncomment these (FIXME)
+	//inStmt = "SELECT site_id as id,file from phase_2_error";
+	//errStmt = "INSERT DELAYED phase_2_error_error (error,site_id,file) VALUES (?,?,?)";
     }
 
     /**
