@@ -16,12 +16,10 @@ public class LogLine {
     private static final DateFormat apacheFormat;
     private static final DateFormat outputFormat;
     
-    // Keep in same order as in Splitter for clarity
-    // (id),ip,date,server,service,request,response,bytes,referer,browser
+    // Keep in same order as in database for clarity
+    // (site),ip,date,request,response,bytes,referer,browser
     public String ip;
     public Date date;
-    public String server;
-    public String service;
     public String request;
     public Integer response;
     public Integer bytes;
@@ -35,12 +33,9 @@ public class LogLine {
 	outputFormat = DateFormat.getInstance();
     }
 
-    public LogLine(String server, String service,String line)
+    public LogLine(String line)
 	throws Exception {
 	
-	this.server = server;
-	this.service = service;
-
 	ParsePosition position = new ParsePosition(0);
 
 	Matcher matcher = logEntryPattern.matcher(line);
@@ -65,22 +60,14 @@ public class LogLine {
     }
 
     public void putFields(PreparedStatement stmt) throws Exception {
-	// (id),ip,date,server,service,request,response,bytes,referer,browser
-	// 1st: id
+	// (site),ip,date,request,response,bytes,referer,browser
+	// 1st: site
 	stmt.setObject(2,ip);
 	stmt.setObject(3,date);
-	stmt.setObject(4,server);
-	stmt.setObject(5,service);
-	stmt.setObject(6,request);
-	stmt.setObject(7,response);
-	stmt.setObject(8,bytes);
-	stmt.setObject(9,referer);
-	stmt.setObject(10,browser);
+	stmt.setObject(4,request);
+	stmt.setObject(5,response);
+	stmt.setObject(6,bytes);
+	stmt.setObject(7,referer);
+	stmt.setObject(8,browser);
     }
-
-    public String engineerDebug() {
-	return "IP: "+ this.ip +
-	    "\nDate: " + outputFormat.format(this.date) +
-	    "\nBrowser: " + this.browser;
-    }    
 }
