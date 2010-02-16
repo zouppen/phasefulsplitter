@@ -12,9 +12,10 @@ public class DatabaseTool {
     private Properties db_config = new Properties();
     private int maxReconnects;
     public static Logger logger = Logger.getLogger("splitter");
-    private Connection conn; // database connection
+    private Connection connIn; // database connection for reading data
+    private Connection connOut; // database connection for writing data
     private Phase p;
-    private int currentID = -1;
+    private long currentID = -1;
 
     // Prepared for speed and convenience.
     private PreparedStatement inStmt, outStmt, errStmt;
@@ -56,16 +57,31 @@ public class DatabaseTool {
     }
 
     /**
-     * Gives a new connection statement. Establishes a new connection to the
-     * database.
+     * Gives a new connection statement. Establishes new connections to the
+     * database and prepares statements et cetera.
      */
     private void newConnection() throws SQLException {
-	this.conn = DriverManager.getConnection(db_url,db_config);
+
+	// Two database connections are needed because writing to a
+	// connection is impossible while iterating thru SELECT
+	// results. Another option is to read all results to memory but
+	// that's virtually impossible with because we have gigabytes of
+	// data.
+	this.connIn = DriverManager.getConnection(db_url,db_config);
+	this.connOut = DriverManager.getConnection(db_url,db_config);
 
 	// Prepare insertion and query of rows
-	this.inStmt = conn.prepareStatement(this.p.inStmt);
-	this.outStmt = conn.prepareStatement(this.p.outStmt);
-	this.errStmt = conn.prepareStatement(this.p.errStmt);
+
+	// This dirty hack for row-to-row fetching is presented in
+	// http://forums.mysql.com/read.php?39,152636,153012#msg-153012 .
+	// That's why here is Integer.MIN_VALUE and other strange things.
+	this.inStmt = connIn.prepareStatement(this.p.inStmt,
+					      ResultSet.TYPE_FORWARD_ONLY,
+					      ResultSet.CONCUR_READ_ONLY);
+	this.inStmt.setFetchSize(Integer.MIN_VALUE);
+	
+	this.outStmt = connOut.prepareStatement(this.p.outStmt);
+	this.errStmt = connOut.prepareStatement(this.p.errStmt);
     }
 
     public void processTable() throws Exception{
@@ -90,7 +106,7 @@ public class DatabaseTool {
 
 	if (this.p.endStmt != null) {
 	    this.logger.info("Finalizing...");
-	    this.conn.prepareStatement(this.p.endStmt).executeUpdate();
+	    this.connOut.prepareStatement(this.p.endStmt).executeUpdate();
 	}
 
 	this.logger.info("Done! Processed "+this.currentID+" rows.");
