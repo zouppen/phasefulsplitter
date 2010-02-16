@@ -4,7 +4,6 @@ import java.util.Date;
 import java.util.TimeZone;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.text.ParsePosition;
 import java.sql.PreparedStatement;
 
 public class LogLine {
@@ -14,6 +13,7 @@ public class LogLine {
     private static final Pattern logEntryPattern;
 
     private static final DateFormat apacheFormat;
+    private static final DateFormat sqlFormat;
     
     // Keep in same order as in database for clarity
     // (site),ip,date,request,response,bytes,referer,browser
@@ -33,23 +33,21 @@ public class LogLine {
 	apacheFormat.setLenient(false);
 	
 	// In addition to format change, also convert time zone to UTC.
-	apacheFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+	sqlFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+					 Locale.ENGLISH);
+	sqlFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     public LogLine(String line)
 	throws Exception {
 	
-	ParsePosition position = new ParsePosition(0);
-
 	Matcher matcher = logEntryPattern.matcher(line);
 	if (!matcher.matches() || logEntryGroups != matcher.groupCount()) {
-	    throw new Exception("syntax error.");
+	    throw new Exception("Syntax error.");
 	}
 
 	this.ip = matcher.group(1);
-	this.date = apacheFormat.parse(matcher.group(4),position);
-	if (position.getErrorIndex() != -1)
-	    throw new Exception("syntax error in date format.");
+	this.date = apacheFormat.parse(matcher.group(4));
 	this.request = matcher.group(5);
 	this.response = new Integer(matcher.group(6));
 	if (!"-".equals(matcher.group(7))) // else null
@@ -66,7 +64,7 @@ public class LogLine {
 	// (site),ip,date,request,response,bytes,referer,browser
 	// 1st: site
 	stmt.setObject(2,ip);
-	stmt.setObject(3,date);
+	stmt.setString(3,sqlFormat.format(date)); // Mind the time zone.
 	stmt.setObject(4,request);
 	stmt.setObject(5,response);
 	stmt.setObject(6,bytes);

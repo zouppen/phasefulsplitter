@@ -22,23 +22,42 @@ CREATE TABLE `phase_3_data` (
   `line` text
 ) ENGINE=ARCHIVE;
 
+-- Phase 4 source data. Log lines are parsed into many columns. Like
+-- before, site_id is a reference to site.id. Date column is in UTC.
+CREATE TABLE `phase_4_data` (
+  `site_id` smallint(6) DEFAULT NULL,
+  `ip` varchar(15) DEFAULT NULL,
+  `date` datetime DEFAULT NULL,
+  `request` text,
+  `response` smallint(6) DEFAULT NULL,
+  `bytes` int(11) DEFAULT NULL,
+  `referer` text,
+  `browser` text
+) ENGINE=ARCHIVE;
+
 -- 
--- Tables for processing errors
+-- Tables for reporting errors in process. All tables contain the
+-- exception text (error) and the data which was processed.
 -- 
 
--- Phase 1 processing errors. Names of failed log files and the related error
--- message.
+-- Phase 1 processing errors.
 CREATE TABLE `phase_1_error` (
   `file` text,
   `error` text
 ) ENGINE=ARCHIVE;
 
--- Phase 2 processing errors. Names of failed log files and the related error
--- message.
+-- Phase 2 processing errors.
 CREATE TABLE `phase_2_error` (
   `site_id` smallint(6) DEFAULT NULL,
   `file` text,
   `error` text
+) ENGINE=ARCHIVE;
+
+-- Phase 3 processing errors.
+CREATE TABLE `phase_3_error` (
+  `error` text,
+  `site_id` smallint(6) DEFAULT NULL,
+  `line` text
 ) ENGINE=ARCHIVE;
 
 -- 
