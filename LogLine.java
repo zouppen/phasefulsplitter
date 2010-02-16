@@ -1,10 +1,10 @@
 import java.util.Locale;
 import java.util.regex.*;
 import java.util.Date;
+import java.util.TimeZone;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.text.ParsePosition;
-import java.lang.StringBuilder;
 import java.sql.PreparedStatement;
 
 public class LogLine {
@@ -14,7 +14,6 @@ public class LogLine {
     private static final Pattern logEntryPattern;
 
     private static final DateFormat apacheFormat;
-    private static final DateFormat outputFormat;
     
     // Keep in same order as in database for clarity
     // (site),ip,date,request,response,bytes,referer,browser
@@ -30,7 +29,11 @@ public class LogLine {
 	logEntryPattern = Pattern.compile(logEntryRegEx);
 	apacheFormat = new SimpleDateFormat("dd/MMM/yyy:HH:mm:ss Z",
 					    Locale.ENGLISH);
-	outputFormat = DateFormat.getInstance();
+	// Fail if date is not correct.
+	apacheFormat.setLenient(false);
+	
+	// In addition to format change, also convert time zone to UTC.
+	apacheFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     public LogLine(String line)
