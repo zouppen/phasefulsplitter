@@ -2,6 +2,8 @@ import java.io.*;
 import java.sql.*;
 import java.util.logging.*;
 import java.util.Properties;
+import java.util.regex.*;
+import java.math.BigInteger;
 
 /**
  * Apache-login parsija
@@ -16,9 +18,20 @@ public class DatabaseTool {
     private Connection connOut; // database connection for writing data
     private Phase p;
     private long currentID = -1;
+    private static final Pattern portionPattern;
+
+    // MySQL doesn't support omitting count in limit, so we need a huge number.
+    private static final BigInteger veryBig = new BigInteger("1000000000000");
 
     // Prepared for speed and convenience.
     private PreparedStatement inStmt, outStmt, errStmt;
+
+    static {
+	// Change this if you want different syntax in command line.
+	String portionRegEx = "^([\\d]+)-([\\d]+)$";
+	
+	portionPattern = Pattern.compile(portionRegEx);
+    }
 
     /**
      * Dynamic thingies to be done once per instance
@@ -57,6 +70,41 @@ public class DatabaseTool {
     }
 
     /**
+     * Sets limits to the query to allow running the processing in a
+     * distributed environment.
+     *
+     * @param portionStr The string given in command line.
+     * @param startParam The position of start parameter in SQL query.
+     * @param endParam The position of end parameter in SQL query.
+     */
+    public void setPortion(String portionStr, int skipParam, int countParam)
+	throws Exception {
+	
+	// Parsing the output.
+	Matcher m = portionPattern.matcher(portionStr);
+	if (!m.matches()) throw new Exception("Syntax error in portion string,"
+					      +" must be in form start-end");
+
+	BigInteger start = new BigInteger(m.group(1));
+	BigInteger end;
+	if ("".equals(m.group(2))) {
+	    end = veryBig;
+	} else {
+	    end = new BigInteger(m.group(2));
+	}
+
+	// Numbering starts from 1 so skipping one less.
+	BigInteger skip = start.add(BigInteger.valueOf(-1));
+	BigInteger count = end.subtract(skip);
+
+	inStmt.setObject(skipParam,start);
+	inStmt.setObject(countParam,end);
+
+	this.logger.info("Processing only lines from "+start+" to "+end+","+
+			 "skip is "+skip+" and count is "+count+".");
+    }
+
+    /**
      * Gives a new connection statement. Establishes new connections to the
      * database and prepares statements et cetera.
      */
@@ -83,7 +131,7 @@ public class DatabaseTool {
 	this.outStmt = connOut.prepareStatement(this.p.outStmt);
 	this.errStmt = connOut.prepareStatement(this.p.errStmt);
     }
-
+    
     public void processTable() throws Exception{
 	
 	ResultSet rows = this.inStmt.executeQuery();

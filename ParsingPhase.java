@@ -11,7 +11,7 @@ public class ParsingPhase extends Phase {
     
     // Public attributes for getting SQL queries
     public ParsingPhase() {
-	inStmt = "SELECT site_id,line from phase_3_data";
+	inStmt = "SELECT site_id,line from phase_3_data LIMIT ?,?";
 	outStmt = "INSERT DELAYED phase_4_data (site_id,ip,date,"+
 	                 "request,response,bytes,referer,browser) "+
 	                 "values(?,?,?,?,?,?,?,?)";
@@ -58,6 +58,13 @@ public class ParsingPhase extends Phase {
     public static void main(String[] args) throws Exception {
 
 	DatabaseTool tool = new DatabaseTool(new ParsingPhase());
+
+	if (args.length == 1) {
+	    tool.setPortion(args[0],1,2);
+	} else if (args.length > 1) {
+	    throw new Exception("Too many parameters.");
+	}
+	
 	tool.processTable();
     }
 }

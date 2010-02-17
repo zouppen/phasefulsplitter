@@ -8,8 +8,6 @@ import java.sql.PreparedStatement;
 
 public class LogLine {
 
-    private static final String logEntryRegEx = "^([\\d\\.]+) (\\S+) +(\\S+) +\\[([\\w:/]+\\s[+\\-]\\d{4})\\] \"(.+?)\" (\\d{3}) (\\d+|-) \"(.*)\" \"(.*)\"$";
-    private static final int logEntryGroups = 9;
     private static final Pattern logEntryPattern;
 
     private static final DateFormat apacheFormat;
@@ -26,6 +24,9 @@ public class LogLine {
     public String browser;
 
     static {
+	// This is the format used in Apache access logs.
+	final String logEntryRegEx = "^([\\d\\.]+) (\\S+) +(\\S+) +\\[([\\w:/]+\\s[+\\-]\\d{4})\\] \"(.+?)\" (\\d{3}) (\\d+|-) \"(.*)\" \"(.*)\"$";
+	
 	logEntryPattern = Pattern.compile(logEntryRegEx);
 	apacheFormat = new SimpleDateFormat("dd/MMM/yyy:HH:mm:ss Z",
 					    Locale.ENGLISH);
@@ -42,7 +43,7 @@ public class LogLine {
 	throws Exception {
 	
 	Matcher matcher = logEntryPattern.matcher(line);
-	if (!matcher.matches() || logEntryGroups != matcher.groupCount()) {
+	if (!matcher.matches()) {
 	    throw new Exception("Syntax error.");
 	}
 
