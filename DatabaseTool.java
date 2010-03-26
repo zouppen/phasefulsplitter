@@ -10,9 +10,12 @@ import java.math.BigInteger;
  */
 public class DatabaseTool {
 
-    private String db_url;
-    private Properties db_config = new Properties();
-    private int maxReconnects;
+    private String dbURLIn;
+    private String dbURLOut;
+    private Properties config = new Properties();
+    private Properties dbConfigIn = new Properties();
+    private Properties dbConfigOut = new Properties();
+
     public static Logger logger = Logger.getLogger("splitter");
     private Connection connIn; // database connection for reading data
     private Connection connOut; // database connection for writing data
@@ -38,24 +41,20 @@ public class DatabaseTool {
      */
     public DatabaseTool(Phase p) throws Exception {
 
-	final String db_file = "database.conf";
+	final String configFile = "database.conf";
+	final String dbInConfigFile = "database_in.conf";
+	final String dbOutConfigFile = "database_out.conf";
 
-	// Some default values
-	this.db_config.setProperty("allowMultiQueries","true");
+	// TODO Fix the whole config file handler
+
+	// Some default values for the db
+	this.dbConfigIn.setProperty("allowMultiQueries","true");
+	this.dbConfigOut.setProperty("allowMultiQueries","true");
 
 	// Reading config (overriding defaults if needed)
-	this.db_config.load(new InputStreamReader(new FileInputStream(db_file),
-						  "UTF-8"));
-
-	// Building URI for database
-	this.db_url = "jdbc:mysql://" + db_config.getProperty("hostname") + 
-	    "/" + db_config.getProperty("database");
-
-	// We are using database.conf for own configuration, too.
-	// TODO Maybe this should be in different Properties to avoid
-	// name clash.
-	this.maxReconnects =
-	    Integer.parseInt(db_config.getProperty("max_reconnects"));
+	this.config.load(new InputStreamReader(new FileInputStream(configFile),"UTF-8"));
+	this.dbConfigIn.load(new InputStreamReader(new FileInputStream(dbInConfigFile),"UTF-8"));
+	this.dbConfigOut.load(new InputStreamReader(new FileInputStream(dbOutConfigFile),"UTF-8"));
 	
 	this.p = p;
 
@@ -115,8 +114,12 @@ public class DatabaseTool {
 	// results. Another option is to read all results to memory but
 	// that's virtually impossible with because we have gigabytes of
 	// data.
-	this.connIn = DriverManager.getConnection(db_url,db_config);
-	this.connOut = DriverManager.getConnection(db_url,db_config);
+	this.connIn =
+	    DriverManager.getConnection(dbConfigIn.getProperty("database_uri"),
+					dbConfigIn);
+	this.connOut =
+	    DriverManager.getConnection(dbConfigOut.getProperty("database_uri"),
+					dbConfigOut);
 
 	// Prepare insertion and query of rows
 

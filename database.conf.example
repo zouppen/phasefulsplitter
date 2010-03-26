@@ -1,6 +1,5 @@
-hostname=my.server.org
+# You can use either MySQL or PostgreSQL. Uncomment and edit your choice
+#database_uri=jdbc:mysql://db.example.com/databasename
+database_uri=jdbc:postgresql://db.example.com:port/databasename
 user=me
 password=secret
-database=loglog
-max_reconnects=3
-#last_id=0
