@@ -5,6 +5,7 @@ you have just a one database, you just need to symlink the another
 config to the first one. Later on, when you are processing from one
 database to another, you can create two separate config files.
 
+# cp splitter.conf.example splitter.conf
 # cp database.conf.example database-in.conf
 # ln -s database-in.conf database-out.conf
 # cp process.conf.example process.conf
@@ -28,18 +29,6 @@ Then, if you're using MySQL:
 
 # export CLASSPATH=.:/path/to/postgresql-8.4-701.jdbc4.jar
 
-You are now ready to run this thing. Make sure you've got some log
-files around and pipe the file names to Splitter with find or just a
-temporary file list file and redirect its contents to Splitter with
-'<'.
-
-# java FileListPhase
-
-Pedantic users may have a file list around and they want to get the
-output to a log file, too:
-
-# java Splitter <log_access-final.txt | tee splitter.log
-
 How to see progress
 ===================
 
@@ -51,3 +40,8 @@ $ kill -USR2 PID
 
 It sends USR2 signal to JVM. Apacheparser traps the signal and then
 progress status is dumped to stdout.
+
+How to run
+===========
+
+Running the parser is explained in the file 'phases.txt'.

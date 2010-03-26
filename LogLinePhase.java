@@ -16,12 +16,14 @@ public class LogLinePhase extends Phase {
     
     // Public attributes for getting SQL queries
     public LogLinePhase() {
-	inStmt = "SELECT id,file from phase_2_data as phase, site "+
-	    "where phase.server=site.server and phase.service=site.service";
-	outStmt = "INSERT DELAYED phase_3_data (site_id,line) VALUES(?,?)";
-	errStmt = "INSERT DELAYED phase_2_error (error,site_id,file) VALUES (?,?,?)";
+	inStmt =
+	    "SELECT service.id as service_id, server.id as server_id, file "+
+	    "FROM phase_2_data as phase, service, server "+
+	    "WHERE phase.server=server.name and phase.service=service.name";
+	outStmt = "INSERT INTO phase_3_data (service,server,line) VALUES(?,?,?)";
+	errStmt = "INSERT INTO phase_2_error (error,service,server,file) VALUES (?,?,?,?)";
 
-	//when reprocessing in case of an error, uncomment these (FIXME)
+	//when reprocessing in case of an error, uncomment and fix these these (FIXME)
 	//inStmt = "SELECT site_id as id,file from phase_2_error";
 	//errStmt = "INSERT DELAYED phase_2_error_error (error,site_id,file) VALUES (?,?,?)";
     }
@@ -36,19 +38,21 @@ public class LogLinePhase extends Phase {
      */
     public boolean process(ResultSet in, PreparedStatement out) throws Exception {
 	
-	String fileName = in.getString(2);
+	String fileName = in.getString(3);
 	    
 	InputStream inSt = new GZIPInputStream(new FileInputStream(fileName));
 	Scanner scanner = new Scanner(inSt, "UTF-8");
 	String line = "";
 	
-	out.setInt(1,in.getInt(1)); // Site id is the same in every row.
+	// Server and service ID's stay the same.
+	out.setInt(1,in.getInt(1));
+	out.setInt(2,in.getInt(2));
 
 	try {
 	    while (true) {
 		line = scanner.nextLine();
 		
-		out.setString(2,line);
+		out.setString(3,line);
 		out.executeUpdate(); // Push a new line to the database.
 	    }
 	} catch (NoSuchElementException foo) {
@@ -73,7 +77,8 @@ public class LogLinePhase extends Phase {
 	    // This error can be post-processed
 	    err.setString(1,e.getMessage());
 	    err.setInt(2,in.getInt(1));
-	    err.setString(3,in.getString(2));
+	    err.setInt(3,in.getInt(2));
+	    err.setString(4,in.getString(3));
 	    return true;
 	}
 

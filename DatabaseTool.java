@@ -41,7 +41,7 @@ public class DatabaseTool {
      */
     public DatabaseTool(Phase p) throws Exception {
 
-	final String configFile = "database.conf";
+	final String configFile = "splitter.conf";
 	final String dbInConfigFile = "database_in.conf";
 	final String dbOutConfigFile = "database_out.conf";
 
@@ -122,14 +122,22 @@ public class DatabaseTool {
 					dbConfigOut);
 
 	// Prepare insertion and query of rows
-
-	// This dirty hack for row-to-row fetching is presented in
-	// http://forums.mysql.com/read.php?39,152636,153012#msg-153012 .
-	// That's why here is Integer.MIN_VALUE and other strange things.
 	this.inStmt = connIn.prepareStatement(this.p.inStmt,
 					      ResultSet.TYPE_FORWARD_ONLY,
 					      ResultSet.CONCUR_READ_ONLY);
-	this.inStmt.setFetchSize(Integer.MIN_VALUE);
+
+	String dbType = config.getProperty("database_type");
+	if (dbType.equals("postgresql")) {
+	    this.inStmt.setFetchSize(100); // A guess for a good value
+	} else if (dbType.equals("mysql")) {
+	    // This dirty hack for row-to-row fetching is presented in
+	    // http://forums.mysql.com/read.php?39,152636,153012#msg-153012 .
+	    // That's why here is Integer.MIN_VALUE and other strange things.
+	    this.inStmt.setFetchSize(Integer.MIN_VALUE);
+	} else {
+	    this.logger.warning("Unknown database type: "+dbType+". Fetch size "+
+				"is not set, strange things may occurr.");
+	}
 	
 	this.outStmt = connOut.prepareStatement(this.p.outStmt);
 	this.errStmt = connOut.prepareStatement(this.p.errStmt);

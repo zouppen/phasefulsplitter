@@ -1,14 +1,60 @@
+============
+Running the parser
+============
+
+
+Preparing the database
+==============
+
 First, prepare all tables:
 
-$ mysql -u root -p database_name <initial.sql
+Using MySQL:
 
-Phase zero: Reading the file list to the database. After this phase phase_1_data will contain file names and some extra information extracted from the file names.
+$ mysql -u root -p database_name <initial.mysql.sql
 
-$ java FileListPhase file_list.txt
+Using PostgreSQL:
 
-Phase one: Extract file information like server and site name from file
+TODO
+
+Running phases
+==========
+
+
+Phases
+======
+
+Phase 0: FileList
+-------------
+
+First there is a file list of log files. File names are read from
+standard input and are written to the database table phase_1_data.
+
+You need file list for this phase. If you have logs in a directory
+structure, you can produce file list easily with find and grep. In the
+following example, we are filtering out error and usertrack logs from
+file list:
+
+# find /path/to/logs/ -iname '*.gz'|grep -v usertrack|grep -v error >log_access.txt
+
+Then we are ready to send file names to the database. Pedantic users
+may want to get the output to a log file, too. For that, 'tee' can be
+used.
+
+# java FileListPhase log_access.txt | tee splitter.log
+
+After this phase phase_1_data will contain file names and some extra
+information extracted from the file names.
+
+Phase 1: SitePhase
+--------------
+
+Phase one: Extract file information like server and site name from
+file and write results to a new table
 
 $ java SitePhase 
+
+Phase 2: LogLine
+-------------
 
 Phase two: Reading the file contents
 

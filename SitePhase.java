@@ -18,10 +18,13 @@ public class SitePhase extends Phase {
     // Public attributes for getting SQL queries
     public SitePhase() {
 	inStmt = "SELECT file from phase_1_data";
-	outStmt = "INSERT phase_2_data (server,service,file) VALUES(?,?,?)";
-	errStmt = "INSERT DELAYED phase_1_error (error,file) VALUES (?,?)";
-	endStmt = "INSERT site (server,service) "+
-	    "SELECT DISTINCT server,service from phase_2_data";
+	outStmt = "INSERT INTO phase_2_data (server,service,file) VALUES(?,?,?)";
+	errStmt = "INSERT INTO phase_1_error (error,file) VALUES (?,?)";
+	endStmt =
+	    "INSERT INTO server (name) "+
+	    "SELECT DISTINCT server from phase_2_data;"+
+	    "INSERT INTO service (name) "+
+	    "SELECT DISTINCT service from phase_2_data;";
     }
 
     /**

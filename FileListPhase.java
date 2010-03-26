@@ -16,8 +16,8 @@ public class FileListPhase extends Phase {
     // Public attributes for getting SQL queries
     public FileListPhase(String inFile) {
 	inStmt = "SELECT 'nothing'";
-	outStmt = "INSERT DELAYED phase_1_data (file) VALUES(?)";
-	errStmt = "INSERT phase_0_error ()";
+	outStmt = "INSERT INTO phase_1_data (file) VALUES(?)";
+	errStmt = "INSERT INTO phase_0_error ()";
 	this.inFile = inFile;
     }
 
