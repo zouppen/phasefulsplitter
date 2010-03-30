@@ -6,6 +6,15 @@ import qualified Data.ByteString.Lazy.Char8 as B
 import Text.Regex.TDFA.ByteString.Lazy
 import Text.Regex.TDFA.Common
 
+import Data.Time.Clock
+import Data.Time.Format
+import System.Locale
+
+-- import Data.Binary
+
+-- fromApacheTime :: String -> Maybe UTCTime
+-- fromApacheTime s = parseTime defaultTimeLocale "%d/%b/%Y:%T %z" s
+
 -- |Apache style log file format. The fourth group is quite messy
 -- because [^]] is broken in TDFA (or it is broken in grep).
 apacheLogRegexText = "^([0-9\\.]+) ([^ ]+) +([^ ]+) +\\[([A-Za-z0-9 +-:/]*)\\] \"([^\"]*)\" ([0-9]{3}) ([0-9]+|-) \"(.*)\" \"(.*)\"$"
@@ -24,16 +33,27 @@ testMatch filePath = do
 
 -- |Reads an entry from a given ByteString. Returns result and the
 -- rest of the ByteString as a pair.
-getEntry :: B.ByteString -> Maybe (Either (String,B.ByteString) [B.ByteString], B.ByteString)
+getEntry :: B.ByteString -> Maybe (Either (String,B.ByteString) Entry, B.ByteString)
 getEntry bs = if bs == B.empty then Nothing
               else Just $ getEntry' bs
 
 getEntry' bs = case match of
                  Left msg -> (Left (msg,curLine),nextLine)
                  Right Nothing -> (Left ("no match",curLine),nextLine)
-                 Right (Just (_,_,rest,ms)) -> (Right (entry ms),B.tail rest)
+                 Right (Just (_,_,rest,ms)) -> (toEntry ms,B.tail rest)
     where match = regexec apacheLogRegex bs
           curLine = B.takeWhile (/='\n') bs
           nextLine = B.tail $ B.dropWhile (/='\n') bs
 
-entry = id
+
+toEntry [a,_,_,b,c,d,e,f,g] = Right $ Entry a b c d e f g
+
+data Entry = Entry {
+      ip :: B.ByteString
+    , date :: B.ByteString
+    , request :: B.ByteString
+    , response :: B.ByteString
+    , bytes :: B.ByteString
+    , referer :: B.ByteString
+    , browser :: B.ByteString
+} deriving (Read, Show)
