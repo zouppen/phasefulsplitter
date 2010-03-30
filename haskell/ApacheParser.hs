@@ -1,7 +1,5 @@
-module LogFileReader where
+module ApacheParser where
 
-import Data.List
-import Codec.Compression.GZip (decompress)
 import qualified Data.ByteString.Lazy.Char8 as B
 import Text.Regex.TDFA.ByteString.Lazy
 import Text.Regex.TDFA.Common
@@ -10,7 +8,6 @@ import Data.Time.Clock
 import Data.Time.Format
 import System.Locale
 
-import Data.Either
 import Control.Monad (liftM)
 
 -- import Data.Binary
@@ -29,11 +26,6 @@ compileNicely regexText = fromEither $ compile CompOption {caseSensitive = False
 -- types of errors, so this is only a minor help.
 fromEither :: Either String t -> t
 fromEither = either error id
-
-readEntriesFromFile filePath = do
-  fileData <- B.readFile filePath
-  return $ unfoldr getEntry $ decompress fileData
-
 
 -- |Reads an entry from a given ByteString. Returns result and the
 -- rest of the ByteString as a pair.
@@ -77,6 +69,8 @@ readInteger bs = if bs == B.pack "-" then Just 0
 eitherifyMaybe _ (Just x) = Right x
 eitherifyMaybe err Nothing = Left err
 
+toTimeStamp t = formatTime defaultTimeLocale "%s" t
+
 maybeEntry (Just ip) (Just date) (Just method) (Just url) (Just protocol) (Just response) (Just bytes) (Just referer) (Just browser) = Just $ Entry ip date method url protocol response bytes referer browser
 maybeEntry _ _ _ _ _ _ _ _ _ = Nothing
 
@@ -91,22 +85,3 @@ data Entry = Entry {
     , referer  :: B.ByteString
     , browser  :: B.ByteString
 } deriving (Read, Show)
-
-colDesc = B.pack ";timestamp,method,url_len,protocol,response_code,bytes,referer_len,browser_len"
-
-entryToText :: Entry -> B.ByteString
-entryToText entry = B.intercalate (B.pack ",") [
-                     B.pack $ formatTime defaultTimeLocale "%s" (date entry),
-                     method entry,
-                     B.pack $ show (B.length (url entry)),
-                     protocol entry,
-                     B.pack $ show (response entry),
-                     B.pack $ show (bytes entry),
-                     B.pack $ show (B.length (referer entry)),
-                     B.pack $ show (B.length (browser entry))
-                    ]
-                    
-processFile fromFile toFile errorFile = do
-  entries <- readEntriesFromFile fromFile
-  B.writeFile toFile $ B.unlines $ (colDesc:) $ map entryToText $ rights entries
-  writeFile errorFile $ show $ lefts entries
