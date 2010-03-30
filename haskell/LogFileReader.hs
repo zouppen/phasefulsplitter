@@ -10,23 +10,27 @@ import Data.Time.Clock
 import Data.Time.Format
 import System.Locale
 
+import Data.Either
+import Control.Monad (liftM)
+
 -- import Data.Binary
 
--- fromApacheTime :: String -> Maybe UTCTime
--- fromApacheTime s = parseTime defaultTimeLocale "%d/%b/%Y:%T %z" s
+fromApacheTime :: B.ByteString -> Maybe UTCTime
+fromApacheTime s = parseTime defaultTimeLocale "%d/%b/%Y:%T %z" $ B.unpack s
 
 -- |Apache style log file format. The fourth group is quite messy
 -- because [^]] is broken in TDFA (or it is broken in grep).
-apacheLogRegexText = "^([0-9\\.]+) ([^ ]+) +([^ ]+) +\\[([A-Za-z0-9 +-:/]*)\\] \"([^\"]*)\" ([0-9]{3}) ([0-9]+|-) \"(.*)\" \"(.*)\"$"
+apacheLogRegex = compileNicely "^([0-9\\.]+) ([^ ]+) +([^ ]+) +\\[([A-Za-z0-9 +-:/]*)\\] \"([^\"]*)\" ([0-9]{3}) ([0-9]+|-) \"(.*)\" \"(.*)\"$"
 
-apacheLogRegex = fromEither $ compile CompOption {caseSensitive = False, multiline = True, rightAssoc = True, newSyntax = True, lastStarGreedy = False} ExecOption {captureGroups = True} (B.pack apacheLogRegexText)
+compileNicely :: String -> Regex
+compileNicely regexText = fromEither $ compile CompOption {caseSensitive = False, multiline = True, rightAssoc = True, newSyntax = True, lastStarGreedy = False} ExecOption {captureGroups = True} (B.pack regexText)
 
 -- |Transforms "Either errors" to exception errors. Haskell has 8
 -- types of errors, so this is only a minor help.
 fromEither :: Either String t -> t
 fromEither = either error id
 
-testMatch filePath = do
+readEntriesFromFile filePath = do
   fileData <- B.readFile filePath
   return $ unfoldr getEntry $ decompress fileData
 
@@ -40,20 +44,69 @@ getEntry bs = if bs == B.empty then Nothing
 getEntry' bs = case match of
                  Left msg -> (Left (msg,curLine),nextLine)
                  Right Nothing -> (Left ("no match",curLine),nextLine)
-                 Right (Just (_,_,rest,ms)) -> (toEntry ms,B.tail rest)
+                 Right (Just (_,_,rest,ms)) -> (eitherifyMaybe ("parse error",curLine) (toEntry ms),B.tail rest)
     where match = regexec apacheLogRegex bs
           curLine = B.takeWhile (/='\n') bs
           nextLine = B.tail $ B.dropWhile (/='\n') bs
 
 
-toEntry [a,_,_,b,c,d,e,f,g] = Right $ Entry a b c d e f g
+toEntry [a,_,_,b,c,d,e,f,g] = maybeEntry (Just a) (fromApacheTime b) (liftM reqMethod req) (liftM reqURL req) (liftM reqProtocol req)  (readInteger d) (readInteger e) (Just f) (Just g)
+                              where req = readRequest c
+
+requestRegex = compileNicely "^([A-Z]+) (.+) ([^ ]+)"
+
+readRequest :: B.ByteString -> Maybe [B.ByteString]
+readRequest bs = case match of 
+                   Left s -> Nothing
+                   Right Nothing -> Nothing
+                   Right (Just (_,_,_,ms)) -> Just ms
+  where match = regexec requestRegex bs
+        
+
+reqMethod (x:_) = x
+reqURL (_:x:_) = x
+reqProtocol (_:_:x:_) = x
+
+readInteger bs = if bs == B.pack "-" then Just 0
+                 else case (B.readInteger bs) of
+                        Nothing -> Nothing
+                        Just (i,rest) -> if rest == B.empty then Just i
+                                         else Nothing
+
+-- |Stupid way to convert Nothing to Left.
+eitherifyMaybe _ (Just x) = Right x
+eitherifyMaybe err Nothing = Left err
+
+maybeEntry (Just ip) (Just date) (Just method) (Just url) (Just protocol) (Just response) (Just bytes) (Just referer) (Just browser) = Just $ Entry ip date method url protocol response bytes referer browser
+maybeEntry _ _ _ _ _ _ _ _ _ = Nothing
 
 data Entry = Entry {
-      ip :: B.ByteString
-    , date :: B.ByteString
-    , request :: B.ByteString
-    , response :: B.ByteString
-    , bytes :: B.ByteString
-    , referer :: B.ByteString
-    , browser :: B.ByteString
+      ip       :: B.ByteString
+    , date     :: UTCTime
+    , method   :: B.ByteString
+    , url      :: B.ByteString
+    , protocol :: B.ByteString
+    , response :: Integer
+    , bytes    :: Integer
+    , referer  :: B.ByteString
+    , browser  :: B.ByteString
 } deriving (Read, Show)
+
+colDesc = B.pack ";timestamp,method,url_len,protocol,response_code,bytes,referer_len,browser_len"
+
+entryToText :: Entry -> B.ByteString
+entryToText entry = B.intercalate (B.pack ",") [
+                     B.pack $ formatTime defaultTimeLocale "%s" (date entry),
+                     method entry,
+                     B.pack $ show (B.length (url entry)),
+                     protocol entry,
+                     B.pack $ show (response entry),
+                     B.pack $ show (bytes entry),
+                     B.pack $ show (B.length (referer entry)),
+                     B.pack $ show (B.length (browser entry))
+                    ]
+                    
+processFile fromFile toFile errorFile = do
+  entries <- readEntriesFromFile fromFile
+  B.writeFile toFile $ B.unlines $ (colDesc:) $ map entryToText $ rights entries
+  writeFile errorFile $ show $ lefts entries
