@@ -3,10 +3,10 @@ module ApacheParser where
 import qualified Data.ByteString.Lazy.Char8 as B
 import Text.Regex.TDFA.ByteString.Lazy
 import Text.Regex.TDFA.Common
-
 import Data.Time.Clock
 import Data.Time.Format
 import System.Locale
+import Network.URL
 
 import Control.Monad (liftM)
 
@@ -18,11 +18,11 @@ fromApacheTime s = parseTime defaultTimeLocale "%d/%b/%Y:%T %z" $ B.unpack s
 
 -- |Apache style log file format. The fourth group is quite messy
 -- because [^]] is broken in TDFA (or it is broken in grep).
-apacheLogRegex = compileNicely "^([0-9\\.]+) ([^ ]+) +([^ ]+) +\\[([A-Za-z0-9 +-:/]*)\\] \"([^\"]*)\" ([0-9]{3}) ([0-9]+|-) \"(.*)\" \"(.*)\"$"
+apacheLogRegex = compileNicely "^([0-9\\.]+) ([^ ]+) +([^ ]+) +\\[([A-Za-z0-9 +-:/]*)\\] \"([^\"]*)\" ([0-9]{3}) ([0-9]+|-) \"([^\"]*)\" \"([^\"]*)\"\n"
 
 -- |Compiles String into a TDFA Regex with good options.
 compileNicely :: String -> Regex
-compileNicely regexText = fromEither $ compile CompOption {caseSensitive = False, multiline = True, rightAssoc = True, newSyntax = True, lastStarGreedy = False} ExecOption {captureGroups = True} (B.pack regexText)
+compileNicely regexText = fromEither $ compile CompOption {caseSensitive = False, multiline = False, rightAssoc = True, newSyntax = True, lastStarGreedy = False} ExecOption {captureGroups = True} (B.pack regexText)
 
 -- |Transforms "Either errors" to exception errors. Haskell has 8
 -- types of errors, so this is only a minor help.
@@ -39,9 +39,9 @@ getEntry bs | bs == B.empty = Nothing
             | otherwise     = Just $ getEntry' bs
 
 getEntry' bs = case match of
-                 Left msg -> (Left (msg,curLine),nextLine)
+                 Left msg -> error msg -- There is a fatal error in the pattern
                  Right Nothing -> (Left ("no match",curLine),nextLine)
-                 Right (Just (_,_,rest,ms)) -> (eitherifyMaybe ("parse error",curLine) (toEntry ms),B.tail rest)
+                 Right (Just (_,_,rest,ms)) -> (eitherifyMaybe ("parse error",curLine) (toEntry ms),rest)
     where match = regexec apacheLogRegex bs
           curLine = B.takeWhile (/='\n') bs
           nextLine = B.tail $ B.dropWhile (/='\n') bs
@@ -53,7 +53,7 @@ toEntry [rawIP,_,_,rawDate,rawReq,rawResponse,rawBytes,rawReferer,rawBrowser] =
     (Just rawIP)
     (fromApacheTime rawDate)
     (liftM  (!! 0) req) -- method
-    (liftM  (!! 1) req) -- URL
+    (justeer importURL $ liftM  (B.unpack . (!! 1)) req) -- URL
     (liftM  (!! 2) req) -- protocol
     (readInteger rawResponse)
     (readInteger rawBytes)
@@ -84,7 +84,12 @@ readInteger bs = case (B.readInteger bs) of
 eitherifyMaybe _ (Just x) = Right x
 eitherifyMaybe err Nothing = Left err
 
-toTimeStamp t = formatTime defaultTimeLocale "%s" t
+-- |This function runs a given function to the Just value of a given
+-- value. This is different from 'liftM' which causes Justs being
+-- wrapped into Justs.
+justeer :: (t -> Maybe a) -> Maybe t -> Maybe a
+justeer f Nothing = Nothing
+justeer f (Just x) = f x
 
 -- |Unwraps Maybes and takes Nothing in the front of Entry.
 maybeEntry (Just ip) (Just date) (Just method) (Just url) (Just protocol) (Just response) (Just bytes) (Just referer) (Just browser) = Just $ Entry ip date method url protocol response bytes referer browser
@@ -94,10 +99,10 @@ data Entry = Entry {
       ip       :: B.ByteString
     , date     :: UTCTime
     , method   :: B.ByteString
-    , url      :: B.ByteString
+    , url      :: URL
     , protocol :: B.ByteString
     , response :: Integer
     , bytes    :: Integer
     , referer  :: B.ByteString
     , browser  :: B.ByteString
-} deriving (Read, Show)
+} deriving (Show)

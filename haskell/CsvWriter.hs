@@ -10,7 +10,7 @@ colDesc = B.pack ";timestamp,method,url_len,protocol,response_code,bytes,referer
 
 entryToText :: A.Entry -> B.ByteString
 entryToText entry = B.intercalate (B.pack ",") [
-                     B.pack $ A.toTimeStamp $ A.date entry,
+                     B.pack $ toTimeStamp $ A.date entry,
                      A.method entry,
                      B.pack $ show (B.length (A.url entry)),
                      A.protocol entry,
@@ -24,3 +24,6 @@ processFile fromFile toFile errorFile = do
   entries <- readEntriesFromFile fromFile
   B.writeFile toFile $ B.unlines $ (colDesc:) $ map entryToText $ rights entries
   writeFile errorFile $ show $ lefts entries
+
+-- |Outputs timestamp in a not-so-sophisticated way
+toTimeStamp t = formatTime defaultTimeLocale "%s" t
