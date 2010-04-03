@@ -52,9 +52,9 @@ toEntry [rawIP,_,_,rawDate,rawReq,rawResponse,rawBytes,rawReferer,rawBrowser] =
     maybeEntry
     (Just rawIP)
     (fromApacheTime rawDate)
-    (liftM  (!! 0) req) -- method
-    (justeer importURL $ liftM  (B.unpack . (!! 1)) req) -- URL
-    (liftM  (!! 2) req) -- protocol
+    (liftM (!! 0) req) -- method
+    (liftM (B.unpack . (!! 1)) req >>= importURL) -- URL
+    (liftM (!! 2) req) -- protocol
     (readInteger rawResponse)
     (readInteger rawBytes)
     (Just rawReferer)
@@ -83,13 +83,6 @@ readInteger bs = case (B.readInteger bs) of
 -- |Stupid way to convert Nothing to Left.
 eitherifyMaybe _ (Just x) = Right x
 eitherifyMaybe err Nothing = Left err
-
--- |This function runs a given function to the Just value of a given
--- value. This is different from 'liftM' which causes Justs being
--- wrapped into Justs.
-justeer :: (t -> Maybe a) -> Maybe t -> Maybe a
-justeer f Nothing = Nothing
-justeer f (Just x) = f x
 
 -- |Unwraps Maybes and takes Nothing in the front of Entry.
 maybeEntry (Just ip) (Just date) (Just method) (Just url) (Just protocol) (Just response) (Just bytes) (Just referer) (Just browser) = Just $ Entry ip date method url protocol response bytes referer browser
