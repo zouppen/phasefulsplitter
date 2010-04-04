@@ -3,3 +3,14 @@ Asennus
 Vaatii muutaman paketin
 
 $ cabal install url
+
+Sarjallistamisen testaaminen:
+
+$ ghci ApacheLogReader.hs 
+GHCi, version 6.10.4: http://www.haskell.org/ghc/  :? for help
+Ok, modules loaded: ApacheLogReader, ApacheParser, Entry.
+*ApacheLogReader> a <- readEntriesFromFile "/path/to/access.log.gz"
+*ApacheLogReader> head $ filter (not.Entry.testBinary) a
+
+Jos palauttaa tyhjän listan poikkeuksen, kaikki on kunnossa, muuten
+näyttää ensimmäisen epäonnistuneen sarjallistamisen.
