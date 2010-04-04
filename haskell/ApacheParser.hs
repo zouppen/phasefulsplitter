@@ -17,7 +17,7 @@ fromApacheTime s = parseTime defaultTimeLocale "%d/%b/%Y:%T %z" $ B.unpack s
 
 -- |Apache style log file format. The fourth group is quite messy
 -- because [^]] is broken in TDFA (or it is broken in grep).
-apacheLogRegex = compileNicely "^([0-9\\.]+) ([^ ]+) +([^ ]+) +\\[([A-Za-z0-9 +-:/]*)\\] \"([^\"]*)\" ([0-9]{3}) ([0-9]+|-) \"([^\"]*)\" \"([^\"]*)\"\n"
+apacheLogRegex = compileNicely "^([0-9\\.]+) ([^ ]+) +([^ ]+) +\\[([A-Za-z0-9 +-:/]*)\\] \"([^\"]*)\" ([0-9]{3}) ([0-9]+|-) \"([^\"]*)\" \"([^\n]*)\"\n"
 
 -- |Compiles String into a TDFA Regex with good options.
 compileNicely :: String -> Regex
