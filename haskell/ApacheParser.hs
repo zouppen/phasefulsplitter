@@ -5,12 +5,14 @@ import Text.Regex.TDFA.ByteString.Lazy
 import Text.Regex.TDFA.Common
 import Data.Time.Clock
 import Data.Time.Format
+import Data.Time.Calendar (fromGregorian)
 import System.Locale
 import Network.URL
 
-import Control.Monad (liftM)
+import Control.Monad (liftM,liftM3,ap)
 
--- import Data.Binary
+import Data.DeriveTH
+import Data.Binary
 
 -- |Converts a bytestring containing an Apache date to UTCTime
 fromApacheTime :: B.ByteString -> Maybe UTCTime
@@ -84,7 +86,7 @@ readInteger bs = case (B.readInteger bs) of
 eitherifyMaybe _ (Just x) = Right x
 eitherifyMaybe err Nothing = Left err
 
--- |Unwraps Maybes and takes Nothing in the front of Entry.
+-- |Unwraps Maybes and takes Nothing in the front of Entry. FIXME: use 'ap'!
 maybeEntry (Just ip) (Just date) (Just method) (Just url) (Just protocol) (Just response) (Just bytes) (Just referer) (Just browser) = Just $ Entry ip date method url protocol response bytes referer browser
 maybeEntry _ _ _ _ _ _ _ _ _ = Nothing
 
@@ -98,4 +100,47 @@ data Entry = Entry {
     , bytes    :: Integer
     , referer  :: B.ByteString
     , browser  :: B.ByteString
-} deriving (Show)
+} deriving (Show,Eq)
+
+-- |Implicit serialisation of UTCTime
+instance Binary UTCTime where
+    put d = put (toUnixSeconds d)
+    get = liftM fromUnixSeconds get
+
+-- |Implicit serialisation of URL (handles only host relative URLs} 
+instance Binary URL where
+    put (URL host_t path params) = put host_t >> put path >> put params 
+    get = liftM3 URL get get get
+    
+instance Binary URLType where
+    put (Absolute (Host (HTTP ht) h p)) = putWord8 0 >> put ht >> put h >> put p
+    put HostRelative = putWord8 1
+    put PathRelative = putWord8 2
+    put _ = error "Unsupported URL type"
+    get = do 
+      t <- getWord8
+      case t of
+        0 -> do
+            ht <- get
+            h <- get
+            p <- get
+            return $ Absolute (Host (HTTP ht) h p)
+        1 -> return HostRelative
+        2 -> return PathRelative
+            
+instance Binary Entry where
+    put (Entry ip date method url protocol response bytes referer browser) =
+        put ip >> put date >> put method >> put url >> put protocol >>
+        put response >> put bytes >> put referer >> put browser
+    get = return Entry `ap` get `ap` get `ap` get `ap` get `ap` get `ap` get
+          `ap` get `ap` get `ap` get
+
+unixEpoch = UTCTime (fromGregorian 1970 1 1) 0
+
+-- |Converts UTCTime to UNIX time stamp seconds. Please note! This
+-- truncates second fractions.
+toUnixSeconds :: UTCTime -> Integer
+toUnixSeconds d = truncate $ diffUTCTime d unixEpoch
+
+fromUnixSeconds :: Integer -> UTCTime
+fromUnixSeconds s = addUTCTime (fromInteger s) unixEpoch
