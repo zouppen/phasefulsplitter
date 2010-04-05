@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# Spawn processors to multiple cores
+# Usage: ./spawner command number_of_cpus target_dir
+
+CMD=$1
+MAXJOBS=$2
+TARGET=$3
+
+N=1
+
+while read FILENAME; do
+    while true; do
+	JOBS=$(jobs -rp|wc -l)
+    
+	if [[ $JOBS -lt $MAXJOBS ]]; then
+	    echo spawning $FILENAME
+	    $CMD $FILENAME $TARGET/$N &
+	    N=$(( $N + 1 ))
+	    break
+	fi
+	
+	sleep 5
+    done
+done
+
+echo "No more files in the queue. Waiting for the last ones."
+wait
+echo "All files are processed."
