@@ -10,6 +10,7 @@ import Network.URL
 import Control.Monad (liftM,ap)
 
 import Entry
+import RegexHelpers
 
 -- |Converts a bytestring containing an Apache date to UTCTime
 fromApacheTime :: B.ByteString -> Maybe UTCTime
@@ -17,16 +18,8 @@ fromApacheTime s = parseTime defaultTimeLocale "%d/%b/%Y:%T %z" $ B.unpack s
 
 -- |Apache style log file format. The fourth group is quite messy
 -- because [^]] is broken in TDFA (or it is broken in grep).
-apacheLogRegex = compileNicely "^([0-9\\.]+) ([^ ]+) +([^ ]+) +\\[([A-Za-z0-9 +-:/]*)\\] \"([^\"]*)\" ([0-9]{3}) ([0-9]+|-) \"([^\"]*)\" \"([^\n]*)\"\n"
+apacheLogRegex = compileString "^([0-9\\.]+) ([^ ]+) +([^ ]+) +\\[([A-Za-z0-9 +-:/]*)\\] \"([^\"]*)\" ([0-9]{3}) ([0-9]+|-) \"([^\"]*)\" \"([^\n]*)\"\n"
 
--- |Compiles String into a TDFA Regex with good options.
-compileNicely :: String -> Regex
-compileNicely regexText = fromEither $ compile CompOption {caseSensitive = False, multiline = False, rightAssoc = True, newSyntax = True, lastStarGreedy = False} ExecOption {captureGroups = True} (B.pack regexText)
-
--- |Transforms "Either errors" to exception errors. Haskell has 8
--- types of errors, so this is only a minor help.
-fromEither :: Either String t -> t
-fromEither = either error id
 
 -- |Reads an entry from a given ByteString. Returns result and the
 -- rest of the ByteString as a pair. Used by unfoldr and therefore it
@@ -61,15 +54,7 @@ toEntry [rawIP,_,_,rawDate,rawReq,rawResponse,rawBytes,rawReferer,rawBrowser] =
     `ap` (Just rawBrowser)
     where req = splitBS requestRegex rawReq
 
-requestRegex = compileNicely "^([A-Z]+) (.+) ([^ ]+)"
-
--- |Splits a given bytestring to a list of groups with a Regex.
-splitBS :: Regex -> B.ByteString -> Maybe [B.ByteString]
-splitBS regex bs = case match of 
-                   Left s -> Nothing
-                   Right Nothing -> Nothing
-                   Right (Just (_,_,_,ms)) -> Just ms
-  where match = regexec regex bs
+requestRegex = compileString "^([A-Z]+) (.+) ([^ ]+)"
 
 -- |Reads integer from ByteString, failing if the entire ByteString is
 -- not parsed as a string.

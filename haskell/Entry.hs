@@ -1,4 +1,4 @@
-module Entry (Entry(Entry),testBinary) where
+module Entry (Entry(Entry),codecOK) where
 
 import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Time.Clock
@@ -66,5 +66,6 @@ fromUnixSeconds s = addUTCTime (fromInteger s) unixEpoch
 encdec :: (Binary a) => a -> a
 encdec = decode . encode
 
-testBinary :: (Binary a, Eq a) => a -> Bool
-testBinary x = x == encdec x
+-- !Tests if data stays the same after encoding and decoding
+codecOK :: (Binary a, Eq a) => a -> Bool
+codecOK x = x == (decode.encode) x
