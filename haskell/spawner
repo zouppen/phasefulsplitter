@@ -15,7 +15,8 @@ while read FILENAME; do
     
 	if [[ $JOBS -lt $MAXJOBS ]]; then
 	    echo spawning $FILENAME
-	    $CMD $FILENAME $TARGET/$N &
+	    echo "$FILENAME" >$TARGET/blob-$N.filename
+	    $CMD $FILENAME $TARGET/blob-$N &
 	    N=$(( $N + 1 ))
 	    break
 	fi
