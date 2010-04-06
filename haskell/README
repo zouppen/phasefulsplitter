@@ -1,9 +1,47 @@
 Valmistelut
 ===========
 
-Vaatii muutaman paketin
+Tarkista aluksi, mitä käyttöjärjestelmää käytät. Tässä on ohjeet
+Debianille. Käyttöjärjestelmän tiedot saa näkyville seuraavalla
+komennolla:
 
+$ lsb_release -d
+
+Debian 6.0 (squeeze) ja uudemmat
+--------------------------------
+
+Vaatii muutaman paketin, jotka saa paketinhallinnasta. Jos käytössäsi
+on Debian Squeeze tai uudempi, voit komentaa:
+
+# apt-get install ghc libghc6-binary-dev libghc6-url-dev libghc6-time-dev libghc6-zlib-dev cabal-install
+
+On olemassa myös paketti libghc6-regex-tdfa-dev, mutta se on vain unstablessa. Voit poimia sen apt-pinningillä tai asentaa Cabalilla. Suosittelen jälkimmäistä:
+
+$ cabal update
+$ cabal install regex-tdfa
+
+Siinä se, voit siirtyä kohtaan "Kääntäminen".
+
+Debian 5.0 (lenny)
+------------------
+
+Vanhemmissa Debianeissa ensin pitää ladata ghc, sitten cabal ja lopuksi
+cabalin avulla url-paketti. Seuraava ohje ei toimi välttämättä
+pitkällä tähtäimellä, mutta näin minä asensin Lennyyn:
+
+Ensin pääkäyttäjänä:
+
+# apt-get install ghc libghc6-binary-dev libghc6-time-dev zlib1g-dev
+# wget http://ftp.fi.debian.org/debian/pool/main/h/haskell-cabal-install/cabal-install_0.8.0-1_amd64.deb http://ftp.fi.debian.org/debian/pool/main/libf/libffi/libffi5_3.0.9-1_amd64.deb
+# dpkg -i libffi5_3.0.9-1_amd64.deb cabal-install_0.8.0-1_amd64.deb
+# rm libffi5_3.0.9-1_amd64.deb cabal-install_0.8.0-1_amd64.deb
+
+Ja tavallisena käyttäjänä:
+
+$ cabal update
 $ cabal install url
+$ cabal install zlib
+$ cabal install regex-tdfa
 
 Kääntäminen
 ===========
@@ -13,8 +51,21 @@ $ ghc -O -o apache2data --make ApacheToData.hs
 Käyttäminen
 ===========
 
+Yhden tiedoston prosessointi:
+
 $ ./apache2data /path/to/kotka/mobi.2009-07-07.gz outfile_name
 
+Monen tiedoston prosessoinnissa voi käyttää
+spawner-skriptiä. Parametrilista on seuraava:
+
+  - mikä sovellus suoritetaan
+  - kuinka monta prosessia ajetaan samanaikaisesti (esimerkin koneessa 8 ydintä,
+    joten 9 samanaikaista prosessia)
+  - mihin hakemistoon data kirjoitetaan (esimerkissä työhakemisto eli .)
+
+Lisäksi ohjelmalle ohjataan (<) lista tiedostojen nimistä.
+
+$ nice /path/to/spawner /path/to/apache2data 9 . <raw_file_list.txt
 
 Sarjallistuvuuden testaaminen
 =============================
