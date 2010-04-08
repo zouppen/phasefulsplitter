@@ -67,6 +67,35 @@ Lisäksi ohjelmalle ohjataan (<) lista tiedostojen nimistä.
 
 $ nice /path/to/spawner /path/to/apache2data 9 . <raw_file_list.txt
 
+Käyttäminen, v2
+===============
+
+Tiedostolistan esikäsittely on täysin riippuvainen siitä, miten
+logitiedostot on nimetty. Mitään suoraa ohjetta tähän on vaikea
+antaa. Tässä käytetään ns. Ixonos-nimeämistä eli muotoa
+'/polku/palvelimennimi/palvelunnimi.YYYY-MM-DD.gz'. Palvelut ovat
+toisistaan irrallisia (ainakin analyysin mielekkyyden kannalta). Yksi
+palvelu koostuu useammalla palvelimesta ja näillä oleva sisältö on
+identtistä.
+
+Aseta palvelunnimet tiedostoon:
+
+$ cp server_map.txt.example server_map.txt
+$ emacs server_map.txt  # or nano, vim ...
+
+Tee tiedostolista käyttämällä findia esimerkiksi:
+
+$ find /path/to/log -iname '*.gz' >tiedostolista.txt
+
+Jonka jälkeen käynnistetään ghci ja ajetaan siellä funktio, joka jakaa
+tiedostot eri palveluiden mukaan ja tallentaa ne levylle etuliitteellä
+"ixonos."
+
+$ ghci IxonosFileListClassifier.hs
+> extractFileData "tiedostolista.txt" "ixonos."
+
+TODO muuta koodia tukemaan näitä tiedostoja.
+
 Sarjallistuvuuden testaaminen
 =============================
 
