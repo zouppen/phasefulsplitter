@@ -50,8 +50,16 @@ fileRegex = compileString "^.*/(.*)/(.*)\\.[0-9]{4}-[0-9]{2}-[0-9]{2}\\.gz$"
 
 main = do
   args <- getArgs
-  when (length args /= 2) $ error "Usage: apache2data file_name target"
+  when (length args /= 3) $ error "Usage: apache2data threads list_file_name target"
+
+  let threads = read (args !! 0) :: Integer 
+  putStrLn $ "Using " ++ (show threads) ++ " threads."
+
+  putStrLn $ "Reading file list from " ++ (args !! 1) ++ "."
+  rawList <- readFile (args !! 1)
+  let list = (read rawList) :: [(String,Integer)]
   
-  putStrLn $ "Converting " ++ (args !! 0) ++ "..."
-  convertFile (args !! 0) (args !! 1)
-  putStrLn "Converted."
+  mapM_ (putStrLn.show) list
+
+  -- convertFile (args !! 0) (args !! 1)
+  -- putStrLn "Converted."

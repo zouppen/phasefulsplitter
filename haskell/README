@@ -13,9 +13,11 @@ Debian 6.0 (squeeze) ja uudemmat
 Vaatii muutaman paketin, jotka saa paketinhallinnasta. Jos käytössäsi
 on Debian Squeeze tai uudempi, voit komentaa:
 
-# apt-get install ghc libghc6-binary-dev libghc6-url-dev libghc6-time-dev libghc6-zlib-dev cabal-install
+# apt-get install ghc libghc6-binary-dev libghc6-url-dev libghc6-time-dev libghc6-zlib-dev libghc6-split-dev cabal-install
 
-On olemassa myös paketti libghc6-regex-tdfa-dev, mutta se on vain unstablessa. Voit poimia sen apt-pinningillä tai asentaa Cabalilla. Suosittelen jälkimmäistä:
+On olemassa myös paketti libghc6-regex-tdfa-dev, mutta se on
+(toistaiseksi) vain unstablessa. Voit poimia sen apt-pinningillä tai
+asentaa Cabalilla. Suosittelen jälkimmäistä:
 
 $ cabal update
 $ cabal install regex-tdfa
@@ -42,6 +44,7 @@ $ cabal update
 $ cabal install url
 $ cabal install zlib
 $ cabal install regex-tdfa
+$ cabal install split
 
 Kääntäminen
 ===========

@@ -9,15 +9,17 @@ import Data.Binary
 import Control.Monad (liftM,liftM3,ap)
 
 data Entry = Entry {
-      ip       :: B.ByteString
-    , date     :: UTCTime
-    , method   :: B.ByteString
-    , url      :: URL
-    , protocol :: B.ByteString
-    , response :: Integer
-    , bytes    :: Integer
-    , referer  :: B.ByteString
-    , browser  :: B.ByteString
+      server_id :: Integer
+    , line_n    :: Integer
+    , ip        :: B.ByteString
+    , date      :: UTCTime
+    , method    :: B.ByteString
+    , url       :: URL
+    , protocol  :: B.ByteString
+    , response  :: Integer
+    , bytes     :: Integer
+    , referer   :: B.ByteString
+    , browser   :: B.ByteString
 } deriving (Show,Eq)
 
 -- |Implicit serialisation of UTCTime
@@ -47,11 +49,12 @@ instance Binary URLType where
         2 -> return PathRelative
             
 instance Binary Entry where
-    put (Entry ip date method url protocol response bytes referer browser) =
+    put (Entry site line ip date method url protocol response bytes referer browser) =
+        put site >> put line >>
         put ip >> put date >> put method >> put url >> put protocol >>
         put response >> put bytes >> put referer >> put browser
     get = return Entry `ap` get `ap` get `ap` get `ap` get `ap` get `ap` get
-          `ap` get `ap` get `ap` get
+          `ap` get `ap` get `ap` get `ap` get `ap` get
 
 unixEpoch = UTCTime (fromGregorian 1970 1 1) 0
 

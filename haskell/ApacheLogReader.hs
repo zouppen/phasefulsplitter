@@ -8,11 +8,12 @@ import Data.List (unfoldr)
 import System.IO
 import Entry
 
-readEntriesFromFile filePath = do
+readEntriesFromFile server_id filePath = do
   fileData <- B.readFile filePath
-  return $ unfoldr getEntry $ decompress fileData
+  return $ map getEntry $ zipWith inliner [1..] $ B.lines $ decompress fileData
+    where inliner = InLine server_id
 
--- Some ideas of compressing output, but it's difficult to run in parallell...
+-- Some ideas of compressing output, but it's difficult to run in parallel...
 -- serialiseBads xs = unlines $ map show xs
 -- serialiseGoods xs = compress $ concat $ map encode xs
 
