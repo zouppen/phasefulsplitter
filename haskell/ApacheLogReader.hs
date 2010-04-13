@@ -6,12 +6,13 @@ import Codec.Compression.GZip (decompress)
 import qualified Data.ByteString.Lazy.Char8 as B
 import System.IO
 import Entry
+import qualified LineInfo as L
 
-readEntriesFromFile LineInfo -> FilePath -> IO (Either (LineInfo,B.ByteString) Entry)
+readEntriesFromFile :: L.LineInfo -> FilePath -> IO (Either (L.LineInfo,B.ByteString) Entry)
 readEntriesFromFile lineinfo filePath = do
   fileData <- B.readFile filePath
   return $ map getEitheredEntry $ zipWith inliner [1..] $ B.lines $ decompress fileData
-    where inliner i bs = (lineinfo{linenum = i},bs)
+    where inliner i bs = (lineinfo{L.lineNo = i},bs)
 
 getEitheredEntry blob = case getEntry blob of
                           Nothing -> Left blob
@@ -21,7 +22,7 @@ getEitheredEntry blob = case getEntry blob of
 -- serialiseBads xs = unlines $ map show xs
 -- serialiseGoods xs = compress $ concat $ map encode xs
 
-findErrors filePath = do
-  entries <- readEntriesFromFile (LineInfo ) filePath
+findErrors lineInfo filePath = do
+  entries <- readEntriesFromFile lineInfo filePath
   return $ head $ filter (not.codecOK) entries
 

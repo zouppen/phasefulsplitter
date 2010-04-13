@@ -47,10 +47,6 @@ instance Binary URLType where
             return $ Absolute (Host (HTTP ht) h p)
         1 -> return HostRelative
         2 -> return PathRelative
-
-instance Binary LineInfo where
-    put (LineInfo file_id line server_id) = put file_id >> put line >> put server_id
-    get = return Entry `ap` get `ap` get `ap` get
             
 instance Binary Entry where
     put (Entry info ip date method url protocol response bytes referer browser) =

@@ -9,6 +9,7 @@ import System.Locale
 import Network.URL
 import Control.Monad (liftM,ap)
 
+import qualified LineInfo as L
 import qualified Entry as E
 import RegexHelpers
 
@@ -20,17 +21,17 @@ fromApacheTime s = parseTime defaultTimeLocale "%d/%b/%Y:%T %z" $ B.unpack s
 -- because [^]] is broken in TDFA (or it is broken in grep).
 apacheLogRegex = compileString "^([0-9\\.]+) ([^ ]+) +([^ ]+) +\\[([A-Za-z0-9 +-:/]*)\\] \"([^\"]*)\" ([0-9]{3}) ([0-9]+|-) \"([^\"]*)\" \"([^\n]*)\"$"
 
--- |Reads an entry from a given ByteString. Returns Right with
--- resulting entry on success and Left in case of an error.
-getEntry :: (LineInfo,line) -> Maybe Entry)
-getEntry (info,line) = splitBS apacheLogRegex $ line_raw line >>=
+-- |Reads an entry from a given ByteString. Returns Nothing in case of
+-- |an error. Error type is not propagated.
+getEntry :: (L.LineInfo,B.ByteString) -> (Maybe E.Entry)
+getEntry (info,line) = splitBS apacheLogRegex line >>=
                        toEntry info
 
 -- |Creates an entry from regex match groups and pushes Maybe to the
 -- front of Entry if one of the operations does fail.
-toEntry :: [B.ByteString] -> Maybe Entry
+toEntry :: L.LineInfo -> [B.ByteString] -> Maybe E.Entry
 toEntry info [rawIP,_,_,rawDate,rawReq,rawResponse,rawBytes,rawReferer,rawBrowser] =
-    (Just $ Entry info) 
+    (Just $ E.Entry info) 
     `ap` (Just rawIP) 
     `ap` (fromApacheTime rawDate)
     `ap` (liftM (!! 0) req) -- method
