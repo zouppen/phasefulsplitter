@@ -20,18 +20,17 @@ fromApacheTime s = parseTime defaultTimeLocale "%d/%b/%Y:%T %z" $ B.unpack s
 -- because [^]] is broken in TDFA (or it is broken in grep).
 apacheLogRegex = compileString "^([0-9\\.]+) ([^ ]+) +([^ ]+) +\\[([A-Za-z0-9 +-:/]*)\\] \"([^\"]*)\" ([0-9]{3}) ([0-9]+|-) \"([^\"]*)\" \"([^\n]*)\"$"
 
-
 -- |Reads an entry from a given ByteString. Returns Right with
 -- resulting entry on success and Left in case of an error.
-getEntry :: InLine -> Maybe Entry)
-getEntry line = splitBS apacheLogRegex $ line_raw line >>=
-                toEntry (server_id line) (line_n line)
+getEntry :: (LineInfo,line) -> Maybe Entry)
+getEntry (info,line) = splitBS apacheLogRegex $ line_raw line >>=
+                       toEntry info
 
 -- |Creates an entry from regex match groups and pushes Maybe to the
 -- front of Entry if one of the operations does fail.
 toEntry :: [B.ByteString] -> Maybe Entry
-toEntry server line [rawIP,_,_,rawDate,rawReq,rawResponse,rawBytes,rawReferer,rawBrowser] =
-    (Just $ Entry server line) 
+toEntry info [rawIP,_,_,rawDate,rawReq,rawResponse,rawBytes,rawReferer,rawBrowser] =
+    (Just $ Entry info) 
     `ap` (Just rawIP) 
     `ap` (fromApacheTime rawDate)
     `ap` (liftM (!! 0) req) -- method
@@ -54,8 +53,3 @@ readInteger bs = case (B.readInteger bs) of
                    Just (i,rest) -> if rest == B.empty then Just i
                                     else Nothing
 
-data InLine = InLine {
-      server_id :: Integer
-    , row       :: Integer
-    , line_raw  :: B.ByteString
-} deriving (Show,Eq)

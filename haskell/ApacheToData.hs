@@ -58,7 +58,9 @@ main = do
   putStrLn $ "Reading file list from " ++ (args !! 1) ++ "."
   rawList <- readFile (args !! 1)
   let list = (read rawList) :: [(String,Integer)]
-  
+  let numberedList = zip [1..] list
+
+  entries <- mapM_ 
   mapM_ (putStrLn.show) list
 
   -- convertFile (args !! 0) (args !! 1)

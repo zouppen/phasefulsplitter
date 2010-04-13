@@ -9,8 +9,7 @@ import Data.Binary
 import Control.Monad (liftM,liftM3,ap)
 
 data Entry = Entry {
-      server_id :: Integer
-    , line_n    :: Integer
+      info      :: LineInfo     -- Connects log file lines to this entries.
     , ip        :: B.ByteString
     , date      :: UTCTime
     , method    :: B.ByteString
@@ -20,6 +19,12 @@ data Entry = Entry {
     , bytes     :: Integer
     , referer   :: B.ByteString
     , browser   :: B.ByteString
+} deriving (Show,Eq)
+
+data LineInfo = LineInfo {
+      file_id   :: Integer
+    , line      :: Integer
+    , server_id :: Integer
 } deriving (Show,Eq)
 
 -- |Implicit serialisation of UTCTime
@@ -47,13 +52,17 @@ instance Binary URLType where
             return $ Absolute (Host (HTTP ht) h p)
         1 -> return HostRelative
         2 -> return PathRelative
+
+instance Binary LineInfo where
+    put (LineInfo file_id line server_id) = put file_id >> put line >> put server_id
+    get = return Entry `ap` get `ap` get `ap` get
             
 instance Binary Entry where
-    put (Entry site line ip date method url protocol response bytes referer browser) =
-        put site >> put line >>
+    put (Entry info ip date method url protocol response bytes referer browser) =
+        put info >>
         put ip >> put date >> put method >> put url >> put protocol >>
         put response >> put bytes >> put referer >> put browser
-    get = return Entry `ap` get `ap` get `ap` get `ap` get `ap` get `ap` get
+    get = return Entry `ap` get `ap` get `ap` get `ap` get `ap` get
           `ap` get `ap` get `ap` get `ap` get `ap` get
 
 unixEpoch = UTCTime (fromGregorian 1970 1 1) 0
