@@ -50,6 +50,7 @@ Kääntäminen
 ===========
 
 $ ghc -O -o apache2data --make ApacheToData.hs
+$ ghc --make -O -o classifier Classifier.hs
 
 Käyttäminen
 ===========
@@ -90,12 +91,14 @@ Tee tiedostolista käyttämällä findia esimerkiksi:
 
 $ find /path/to/log -iname '*.gz' >tiedostolista.txt
 
-Jonka jälkeen käynnistetään ghci ja ajetaan siellä funktio, joka jakaa
-tiedostot eri palveluiden mukaan ja tallentaa ne levylle etuliitteellä
-"ixonos."
+Suoritetaan luokittelija, joka jakaa tiedostot eri palveluiden mukaan
+ja tallentaa ne levylle etuliitteellä "ixonos."
 
-$ ghci IxonosFileListClassifier.hs
-> extractFileData "tiedostolista.txt" "ixonos."
+$ ./classifier "tiedostolista.txt" "ixonos."
+
+Voit myös antaa tiedostolistan syötteenä näin:
+
+$ find ... | ./classifier "ixonos."
 
 TODO muuta koodia tukemaan näitä tiedostoja.
 

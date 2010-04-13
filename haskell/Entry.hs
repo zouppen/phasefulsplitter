@@ -7,6 +7,7 @@ import Data.Time.Format
 import Network.URL
 import Data.Binary
 import Control.Monad (liftM,liftM3,ap)
+import LineInfo
 
 data Entry = Entry {
       info      :: LineInfo     -- Connects log file lines to this entries.
@@ -19,12 +20,6 @@ data Entry = Entry {
     , bytes     :: Integer
     , referer   :: B.ByteString
     , browser   :: B.ByteString
-} deriving (Show,Eq)
-
-data LineInfo = LineInfo {
-      file_id   :: Integer
-    , line      :: Integer
-    , server_id :: Integer
 } deriving (Show,Eq)
 
 -- |Implicit serialisation of UTCTime
