@@ -5,15 +5,18 @@ import System.IO
 import System.Environment
 import Data.Binary
 import Control.Monad
+import System.IO.Unsafe(unsafeInterleaveIO)
 
 import Entry
+import qualified LineInfo as L
 import RegexHelpers
 import ApacheLogReader
 
--- |Converts a file into Haskell data structure (which can be gzipped
+-- |Converts list of files into Haskell data structure (which can be gzipped
 -- |and stored for long times at your disposal). 'fromFile' is the
 -- |file to read and 'toBase is the base name of the file (appended
 -- |with .0.pf and .error as needed.
+{-
 convertFile fromFile toBase = do
   outH <- openFile (toBase ++ ".0.pf") WriteMode
   errH <- openFile (toBase ++ ".0.error.txt") WriteMode
@@ -28,6 +31,7 @@ convertFile fromFile toBase = do
   
   hClose outH
   hClose errH
+-}
 
 -- |Writes entries to a given handle. Doesn't continue if the first
 -- |line fails.
@@ -57,10 +61,24 @@ main = do
 
   putStrLn $ "Reading file list from " ++ (args !! 1) ++ "."
   rawList <- readFile (args !! 1)
-  let list = (read rawList) :: [(LineInfo,String)]
+  let list = (read rawList) :: [(L.LineInfo,String)]
 
-  --entries <- mapM_ 
-  mapM_ (putStrLn.show) list
+  -- Reads entries from many files and concatenate everything
+  entries <- liftM concat $ mapM verboseRead list
 
-  -- convertFile (args !! 0) (args !! 1)
-  -- putStrLn "Converted."
+  -- Prepare "sinks"
+  let target = (args !! 2)
+  errorH <- openFile (target ++ ".errors") WriteFile
+  outH <-
+
+  putStrLn $ show $ take 3 entries
+
+  putStrLn "Converted."
+
+-- |Read a file into entries and print some progress information. We
+-- |are doing it lazily because the processing order and the time of
+-- |processing are trivially not meaningful. They are just static log
+-- |files.
+verboseRead infoPair = unsafeInterleaveIO $ do
+  putStrLn $ "Processing file \"" ++ snd infoPair ++ "\""
+  readEntriesFromFile infoPair  

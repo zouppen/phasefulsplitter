@@ -8,21 +8,19 @@ import System.IO
 import Entry
 import qualified LineInfo as L
 
-readEntriesFromFile :: L.LineInfo -> FilePath -> IO (Either (L.LineInfo,B.ByteString) Entry)
-readEntriesFromFile lineinfo filePath = do
+readEntriesFromFile :: (L.LineInfo,FilePath) -> IO [Either (L.LineInfo,B.ByteString) Entry]
+readEntriesFromFile (lineInfo,filePath) = do
   fileData <- B.readFile filePath
   return $ map getEitheredEntry $ zipWith inliner [1..] $ B.lines $ decompress fileData
-    where inliner i bs = (lineinfo{L.lineNo = i},bs)
+    where inliner i bs = (lineInfo{L.lineNo = i},bs)
 
+-- |Gets entry in "eithered" form. If parsing of 'blob' fails, then
+-- |Left, otherwise return resilt in Right.
 getEitheredEntry blob = case getEntry blob of
                           Nothing -> Left blob
                           Just a -> Right a
 
--- Some ideas of compressing output, but it's difficult to run in parallel...
--- serialiseBads xs = unlines $ map show xs
--- serialiseGoods xs = compress $ concat $ map encode xs
-
 findErrors lineInfo filePath = do
-  entries <- readEntriesFromFile lineInfo filePath
+  entries <- readEntriesFromFile (lineInfo,filePath)
   return $ head $ filter (not.codecOK) entries
 
