@@ -11,13 +11,14 @@ import Data.Binary
 import Control.Monad
 import System.IO.Unsafe(unsafeInterleaveIO)
 import System.Exit
+import Control.Concurrent (nmergeIO)
 
 import Entry
 import qualified LineInfo as L
 import RegexHelpers
 import ApacheLogReader
 import ExternalGzip
-
+import Helpers (unmerge)
 
 -- |Writes a single entry to either file depending on if it is left or
 -- |right.
@@ -29,14 +30,15 @@ main = do
   args <- getArgs
   when (length args /= 3) $ error "Usage: apache2data threads list_file_name target"
 
-  let threads = read (args !! 0) :: Integer 
+  let threads = read (args !! 0) :: Int
   putStrLn $ "Using " ++ (show threads) ++ " threads."
 
   putStrLn $ "Reading file list from " ++ (args !! 1) ++ "."
   rawList <- readFile (args !! 1)
   let list = (read rawList) :: [(L.LineInfo,String)]
 
-  -- Reads entries from many files and concatenate everything
+  -- Reads entries from many files and concatenate everything into a
+  -- single list.
   entries <- liftM concat $ mapM verboseRead list
 
   -- Prepare "sinks"
@@ -48,8 +50,12 @@ main = do
   errExternalH <- openGzipOutFile (target ++ ".errors.gz")
   let errH = getWriteH errExternalH
 
+  -- Split the entry list, compute it with multiple processors and
+  -- combine results.
+  mergedEntries <- nmergeIO $ unmerge threads entries
+
   -- Writing to files.
-  mapM_ (writeEntry outH errH) entries
+  mapM_ (writeEntry outH errH) mergedEntries
 
   -- Closing and saying goodbyes.
   retOut <- closeExternalHandle outExternalH
@@ -67,3 +73,4 @@ main = do
 verboseRead infoPair = unsafeInterleaveIO $ do
   putStrLn $ "Processing file \"" ++ snd infoPair ++ "\""
   readEntriesFromFile infoPair  
+
