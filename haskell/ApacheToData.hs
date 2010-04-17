@@ -1,3 +1,7 @@
+-- | Convert log files into PhasefulSplitter internal
+-- | representation. Writes errors to another file for re-processing
+-- | later on.
+
 module Main where
 
 import qualified Data.ByteString.Lazy.Char8 as B
@@ -6,51 +10,20 @@ import System.Environment
 import Data.Binary
 import Control.Monad
 import System.IO.Unsafe(unsafeInterleaveIO)
+import System.Exit
 
 import Entry
 import qualified LineInfo as L
 import RegexHelpers
 import ApacheLogReader
+import ExternalGzip
 
--- |Converts list of files into Haskell data structure (which can be gzipped
--- |and stored for long times at your disposal). 'fromFile' is the
--- |file to read and 'toBase is the base name of the file (appended
--- |with .0.pf and .error as needed.
-{-
-convertFile fromFile toBase = do
-  outH <- openFile (toBase ++ ".0.pf") WriteMode
-  errH <- openFile (toBase ++ ".0.error.txt") WriteMode
-
-  case splitBS fileRegex (B.pack fromFile) of
-    Just [server,service] -> do
-      -- Output file headers 
-      B.hPut outH $ encode (server,service)
-      entries <- readEntriesFromFile fromFile
-      writeEntries outH errH entries
-    _ -> hPutStrLn errH "fatal: File name pattern doesn't match."
-  
-  hClose outH
-  hClose errH
--}
-
--- |Writes entries to a given handle. Doesn't continue if the first
--- |line fails.
-writeEntries :: (Show a) => Handle -> Handle -> [Either a Entry] -> IO ()
-writeEntries outH errH es = do
-  case head es of
-    Left x -> (hPutStrLn errH "first line failed. Stopping") >>
-                (writeEntry outH errH $ Left x)
-    Right _ -> mapM_ (writeEntry outH errH) es -- Write to either file
 
 -- |Writes a single entry to either file depending on if it is left or
 -- |right.
 writeEntry :: (Show a) => Handle -> Handle -> Either a Entry -> IO ()
 writeEntry outHandle _ (Right entry) = B.hPut outHandle $ encode entry
 writeEntry _ errHandle (Left err) = hPutStrLn errHandle $ show err
-
--- |This regex may not fit your needs but for the log files I use,
--- |this is just perfect.
-fileRegex = compileString "^.*/(.*)/(.*)\\.[0-9]{4}-[0-9]{2}-[0-9]{2}\\.gz$"
 
 main = do
   args <- getArgs
@@ -68,12 +41,24 @@ main = do
 
   -- Prepare "sinks"
   let target = (args !! 2)
-  errorH <- openFile (target ++ ".errors") WriteFile
-  outH <-
+  
+  outExternalH <- openGzipOutFile (target ++ ".pf.gz")
+  let outH = getWriteH outExternalH
+  
+  errExternalH <- openGzipOutFile (target ++ ".errors.gz")
+  let errH = getWriteH errExternalH
 
-  putStrLn $ show $ take 3 entries
+  -- Writing to files.
+  mapM_ (writeEntry outH errH) entries
 
-  putStrLn "Converted."
+  -- Closing and saying goodbyes.
+  retOut <- closeExternalHandle outExternalH
+  retErr <- closeExternalHandle errExternalH
+
+  when (any (/= ExitSuccess) [retOut,retErr]) $
+      error "Writing to gzip files has failed."
+  putStrLn "Converted all files."
+
 
 -- |Read a file into entries and print some progress information. We
 -- |are doing it lazily because the processing order and the time of
