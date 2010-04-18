@@ -11,14 +11,12 @@ import Data.Binary
 import Control.Monad
 import System.IO.Unsafe(unsafeInterleaveIO)
 import System.Exit
-import Control.Concurrent (nmergeIO)
 
 import Entry
 import qualified LineInfo as L
 import RegexHelpers
 import ApacheLogReader
 import ExternalGzip
-import Helpers (unmerge)
 
 -- |Writes a single entry to either file depending on if it is left or
 -- |right.
@@ -50,12 +48,8 @@ main = do
   errExternalH <- openGzipOutFile (target ++ ".errors.gz")
   let errH = getWriteH errExternalH
 
-  -- Split the entry list, compute it with multiple processors and
-  -- combine results.
-  mergedEntries <- nmergeIO $ unmerge threads entries
-
   -- Writing to files.
-  mapM_ (writeEntry outH errH) mergedEntries
+  mapM_ (writeEntry outH errH) entries
 
   -- Closing and saying goodbyes.
   retOut <- closeExternalHandle outExternalH
@@ -72,5 +66,4 @@ main = do
 -- |files.
 verboseRead infoPair = unsafeInterleaveIO $ do
   putStrLn $ "Processing file \"" ++ snd infoPair ++ "\""
-  readEntriesFromFile infoPair  
-
+  readEntriesFromFile infoPair

@@ -17,10 +17,11 @@ on Debian Squeeze tai uudempi, voit komentaa:
 
 On olemassa myös paketti libghc6-regex-tdfa-dev, mutta se on
 (toistaiseksi) vain unstablessa. Voit poimia sen apt-pinningillä tai
-asentaa Cabalilla. Suosittelen jälkimmäistä:
+asentaa Cabalilla. Lisäksi paketti 'parallel' löytyy, mutta liian vanhana versiona. Siispä suosittelen seuraavaa:
 
 $ cabal update
 $ cabal install regex-tdfa
+$ cabal install parallel
 
 Siinä se, voit siirtyä kohtaan "Kääntäminen".
 
@@ -33,7 +34,7 @@ pitkällä tähtäimellä, mutta näin minä asensin Lennyyn:
 
 Ensin pääkäyttäjänä:
 
-# apt-get install ghc libghc6-binary-dev libghc6-time-dev zlib1g-dev
+# apt-get install ghc libghc6-binary-dev libghc6-time-dev zlib1g-dev libghc6-parallel-dev
 # wget http://ftp.fi.debian.org/debian/pool/main/h/haskell-cabal-install/cabal-install_0.8.0-1_amd64.deb http://ftp.fi.debian.org/debian/pool/main/libf/libffi/libffi5_3.0.9-1_amd64.deb
 # dpkg -i libffi5_3.0.9-1_amd64.deb cabal-install_0.8.0-1_amd64.deb
 # rm libffi5_3.0.9-1_amd64.deb cabal-install_0.8.0-1_amd64.deb
@@ -43,8 +44,9 @@ Ja tavallisena käyttäjänä:
 $ cabal update
 $ cabal install url
 $ cabal install zlib
-$ cabal install regex-tdfa
 $ cabal install split
+$ cabal install regex-tdfa
+$ cabal install parallel
 
 Kääntäminen
 ===========
