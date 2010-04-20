@@ -13,6 +13,7 @@ import System.IO.Unsafe(unsafeInterleaveIO)
 import System.Exit
 import Control.Parallel.Strategies
 import Control.Exception (evaluate)
+import System.Directory (createDirectoryIfMissing)
 
 import Entry
 import qualified LineInfo as L
@@ -22,9 +23,9 @@ import ExternalGzip
 
 -- |Writes a single entry to either file depending on if it is left or
 -- |right.
-writeEntry :: Handle -> Handle -> Either String B.ByteString -> IO ()
-writeEntry _ outHandle (Right entry) = B.hPut outHandle entry
-writeEntry errHandle _ (Left err) = hPutStrLn errHandle err
+writeEntry :: Handle -> (Handle, Either String B.ByteString) -> IO ()
+writeEntry _ (outHandle,(Right entry)) = B.hPut outHandle entry
+writeEntry errHandle (_,(Left err)) = hPutStrLn errHandle err
 
 -- |Postprocess entry for writing. Left becomes String and Right becomes a binary blob
 postprocess (Left a) = Left $ show a
@@ -58,8 +59,11 @@ main = do
   errExternalH <- openGzipOutFile (target ++ site ++ ".errors.gz")
   let errH = getWriteH errExternalH
 
+  -- Make directories.
+  createDirectoryIfMissing False $ target ++ site
+  
   -- Writing to files. Writing output to multiple files in a cycle
-  sequence $ zipWith (\x y -> x y) (map (writeEntry errH) (cycle outHs)) entries
+  mapM_ (writeEntry errH) $ zip (cycle outHs) entries
 
   -- Closing and saying goodbyes.
   retOuts <- sequence $ map closeExternalHandle outExternalHs
