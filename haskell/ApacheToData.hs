@@ -11,6 +11,8 @@ import Data.Binary
 import Control.Monad
 import System.IO.Unsafe(unsafeInterleaveIO)
 import System.Exit
+import Control.Parallel.Strategies
+import Control.Exception (evaluate)
 
 import Entry
 import qualified LineInfo as L
@@ -20,10 +22,15 @@ import ExternalGzip
 
 -- |Writes a single entry to either file depending on if it is left or
 -- |right.
-writeEntry :: (Show a) => Handle -> Handle -> Either a Entry -> IO ()
-writeEntry outHandle _ (Right entry) = B.hPut outHandle $ encode entry
-writeEntry _ errHandle (Left err) = hPutStrLn errHandle $ show err
+writeEntry :: Handle -> Handle -> Either String B.ByteString -> IO ()
+writeEntry outHandle _ (Right entry) = B.hPut outHandle entry
+writeEntry _ errHandle (Left err) = hPutStrLn errHandle err
 
+-- |Postprocess entry for writing. Left becomes String and Right becomes a binary blob
+postprocess (Left a) = Left $ show a
+postprocess (Right a) = Right $ encode a
+
+-- |Main.
 main = do
   args <- getArgs
   when (length args /= 3) $ error "Usage: apache2data threads list_file_name target"
@@ -33,11 +40,14 @@ main = do
 
   putStrLn $ "Reading file list from " ++ (args !! 1) ++ "."
   rawList <- readFile (args !! 1)
-  let list = (read rawList) :: [(L.LineInfo,String)]
+  let instructions = (read rawList) :: (String,[(L.LineInfo,String)])
+  let site = fst instructions
+  let list = snd instructions
 
   -- Reads entries from many files and concatenate everything into a
   -- single list.
-  entries <- liftM concat $ mapM verboseRead list
+  entryBlobs <- liftM concat $ mapM verboseRead list
+  let entries = map (postprocess.getEitheredEntry) entryBlobs
 
   -- Prepare "sinks"
   let target = (args !! 2)
@@ -66,4 +76,5 @@ main = do
 -- |files.
 verboseRead infoPair = unsafeInterleaveIO $ do
   putStrLn $ "Processing file \"" ++ snd infoPair ++ "\""
-  readEntriesFromFile infoPair
+  blobs <- readBlobsFromFile infoPair
+  evaluate blobs -- Suggested by aleator.

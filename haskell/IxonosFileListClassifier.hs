@@ -23,7 +23,7 @@ extractFileData fileList baseName = do
 -- |Writes site information to a file.
 writeSite :: String -> (String, [(FilePath, Integer)]) -> IO ()
 writeSite baseName (site,x) = writeFile (baseName++site) $
-                              showNiceList fileInfo ""
+                              show (site,fileInfo)
     where fileInfo = zipWith formLineInfo [1..] x
 
 -- |Forms fileInfo from "raw" data.
