@@ -23,8 +23,8 @@ import ExternalGzip
 -- |Writes a single entry to either file depending on if it is left or
 -- |right.
 writeEntry :: Handle -> Handle -> Either String B.ByteString -> IO ()
-writeEntry outHandle _ (Right entry) = B.hPut outHandle entry
-writeEntry _ errHandle (Left err) = hPutStrLn errHandle err
+writeEntry _ outHandle (Right entry) = B.hPut outHandle entry
+writeEntry errHandle _ (Left err) = hPutStrLn errHandle err
 
 -- |Postprocess entry for writing. Left becomes String and Right becomes a binary blob
 postprocess (Left a) = Left $ show a
@@ -36,7 +36,7 @@ main = do
   when (length args /= 3) $ error "Usage: apache2data threads list_file_name target"
 
   let threads = read (args !! 0) :: Int
-  putStrLn $ "Using " ++ (show threads) ++ " threads."
+  putStrLn $ "Generating data for " ++ (show threads) ++ " threads."
 
   putStrLn $ "Reading file list from " ++ (args !! 1) ++ "."
   rawList <- readFile (args !! 1)
@@ -52,20 +52,20 @@ main = do
   -- Prepare "sinks"
   let target = (args !! 2)
   
-  outExternalH <- openGzipOutFile (target ++ ".pf.gz")
-  let outH = getWriteH outExternalH
+  outExternalHs <- mapM (openGzipWithI $ target ++ site) [1..threads]
+  let outHs = map getWriteH outExternalHs
   
-  errExternalH <- openGzipOutFile (target ++ ".errors.gz")
+  errExternalH <- openGzipOutFile (target ++ site ++ ".errors.gz")
   let errH = getWriteH errExternalH
 
-  -- Writing to files.
-  mapM_ (writeEntry outH errH) entries
+  -- Writing to files. Writing output to multiple files in a cycle
+  sequence $ zipWith (\x y -> x y) (map (writeEntry errH) (cycle outHs)) entries
 
   -- Closing and saying goodbyes.
-  retOut <- closeExternalHandle outExternalH
+  retOuts <- sequence $ map closeExternalHandle outExternalHs
   retErr <- closeExternalHandle errExternalH
 
-  when (any (/= ExitSuccess) [retOut,retErr]) $
+  when (any (/= ExitSuccess) (retErr:retOuts)) $
       error "Writing to gzip files has failed."
   putStrLn "Converted all files."
 
@@ -78,3 +78,5 @@ verboseRead infoPair = unsafeInterleaveIO $ do
   putStrLn $ "Processing file \"" ++ snd infoPair ++ "\""
   blobs <- readBlobsFromFile infoPair
   evaluate blobs -- Suggested by aleator.
+
+openGzipWithI base i = openGzipOutFile (base ++ "/" ++ show i ++ ".pf.gz")
