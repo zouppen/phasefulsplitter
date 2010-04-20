@@ -50,17 +50,17 @@ main = do
   entryBlobs <- liftM concat $ mapM verboseRead list
   let entries = map (postprocess.getEitheredEntry) entryBlobs
 
-  -- Prepare "sinks"
   let target = (args !! 2)
   
+  -- Make directories.
+  createDirectoryIfMissing False $ target ++ site
+
+  -- Prepare "sinks"
   outExternalHs <- mapM (openGzipWithI $ target ++ site) [1..threads]
   let outHs = map getWriteH outExternalHs
   
   errExternalH <- openGzipOutFile (target ++ site ++ ".errors.gz")
   let errH = getWriteH errExternalH
-
-  -- Make directories.
-  createDirectoryIfMissing False $ target ++ site
   
   -- Writing to files. Writing output to multiple files in a cycle
   mapM_ (writeEntry errH) $ zip (cycle outHs) entries
