@@ -54,27 +54,17 @@ Kääntäminen
 $ ghc -O -o apache2data --make ApacheToData.hs
 $ ghc --make -O -o classifier Classifier.hs
 
-Käyttäminen
-===========
+Suorittaminen
+=============
 
-Yhden tiedoston prosessointi:
+Suorittaminen jakautuu useampaan vaiheeseen, joita ovat:
 
-$ ./apache2data /path/to/kotka/mobi.2009-07-07.gz outfile_name
+ - tiedostolistan luonti
+ - rivien jakaminen binaaritiedostoihin
+ - binaaritiedostojen jatkokäsittely eri tavoin
 
-Monen tiedoston prosessoinnissa voi käyttää
-spawner-skriptiä. Parametrilista on seuraava:
-
-  - mikä sovellus suoritetaan
-  - kuinka monta prosessia ajetaan samanaikaisesti (esimerkin koneessa 8 ydintä,
-    joten 9 samanaikaista prosessia)
-  - mihin hakemistoon data kirjoitetaan (esimerkissä työhakemisto eli .)
-
-Lisäksi ohjelmalle ohjataan (<) lista tiedostojen nimistä.
-
-$ nice /path/to/spawner /path/to/apache2data 9 . <raw_file_list.txt
-
-Käyttäminen, v2
-===============
+Tiedostolistan luonti
+---------------------
 
 Tiedostolistan esikäsittely on täysin riippuvainen siitä, miten
 logitiedostot on nimetty. Mitään suoraa ohjetta tähän on vaikea
@@ -84,28 +74,50 @@ toisistaan irrallisia (ainakin analyysin mielekkyyden kannalta). Yksi
 palvelu koostuu useammalla palvelimesta ja näillä oleva sisältö on
 identtistä.
 
-Aseta palvelunnimet tiedostoon:
+Luokittelussa tarvitaan palvelinten nimet. Ne asetetaan tiedostoon
+'server.map' seuraavan esimerkin mukaisesti:
 
 $ cp server_map.txt.example server_map.txt
 $ emacs server_map.txt  # or nano, vim ...
 
-Tee tiedostolista käyttämällä findia esimerkiksi:
+Tehdään tiedostolista käyttämällä esimerkiksi findiä:
 
 $ find /path/to/log -iname '*.gz' >tiedostolista.txt
 
 Suoritetaan luokittelija, joka jakaa tiedostot eri palveluiden mukaan
-ja tallentaa ne levylle etuliitteellä "ixonos."
+ja tallentaa ne levylle hakemistoon 'lists'
 
-$ ./classifier "tiedostolista.txt" "ixonos."
+$ mkdir lists
+$ ./classifier tiedostolista.txt lists/
 
 Voit myös antaa tiedostolistan syötteenä näin:
 
-$ find ... | ./classifier "ixonos."
+$ find ... | ./classifier lists/
 
-TODO muuta koodia tukemaan näitä tiedostoja.
+Jakaminen binaaritiedostoihin
+-----------------------------
+
+xargs-komennolla voi nätisti ajaa rinnakkain eri ytimillä tiedostojen
+esikäsittelyn ohjelman omaan .pf.gz -muotoon. Allaolevassa esimerkissä
+esikäsitellään lists-hakemistosta löytyvät tiedostolistat ja
+kirjoitetaan ne hakemiston data alle. Tiedostolistat esikäsitellään 8
+ytimellä ja kirjoitetaan 8 eri tiedostoon kukin. Jako mahdollistaa
+tehokkaan jälkikäsittelyn, koska tiedostojen sisältöä on mahdollista
+käsitellä myöhemmin samanaikaisesti.
+
+ls lists/*| xargs -n 1 -I{} -P 8 ./apache2data 8 {} data/
+
+Jatkokäsittely
+--------------
+
+TODO
 
 Sarjallistuvuuden testaaminen
 =============================
+
+Jos koodiin tehdään suuria muutoksia ja halutaan tarkistaa, onnistuuko
+binäärimuodon kirjoittaminen ja lukeminen virheettömästi, voi ajaa
+sarjallistamistestin seuraavasti:
 
 $ ghci ApacheLogReader.hs 
 GHCi, version 6.10.4: http://www.haskell.org/ghc/  :? for help
