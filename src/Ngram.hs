@@ -35,14 +35,15 @@ frequencyNgram n xs = frequencyMap $ nGrams n xs
 giganticFrequencyNgram :: (Ord a) => Int -> [[a]] -> M.Map (Ngram a) Integer
 giganticFrequencyNgram n xss = frequencyMap $ concat $ map (nGrams n) xss
 
--- |Map a map to contain only zeros. Used in generation on n-gram vectors.
-toZeroMap :: M.Map k a -> M.Map k Integer
-toZeroMap = M.map (const 0)
-
--- Returns a vectorized (=list) form of n-gram. The second parameter
+-- |Returns a vectorized (=list) form of n-gram. The second parameter
 -- is zero map containing all possible n-grams as keys. Zero map can
 -- be generated from 'giganticFrequencyNgram' result with
 -- 'toZeroMap'. Vectorized form can be used as output to dimension
 -- reduction algorithms.
-nGramVector :: (Ord k) => M.Map k a -> M.Map k a -> [a]
-nGramVector zeroMap x = M.elems $ M.union x zeroMap
+nGramVector :: (Ord k) => [k] -> M.Map k Integer -> [Integer]
+nGramVector keyList x = map (getGramCount x) keyList
+
+-- |Returns zero if a key is not found in that map, otherwise returns
+-- |the value.
+getGramCount :: (Ord k) => M.Map k Integer -> k -> Integer
+getGramCount gramMap gram = M.findWithDefault 0 gram gramMap
