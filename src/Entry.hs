@@ -2,12 +2,12 @@ module Entry (Entry(Entry),codecOK) where
 
 import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Time.Clock
-import Data.Time.Calendar (fromGregorian)
 import Data.Time.Format
 import Network.URL
 import Data.Binary
 import Control.Monad (liftM,liftM3,ap)
 import LineInfo
+import UTCTimeExts
 
 data Entry = Entry {
       info      :: LineInfo     -- Connects log file lines to this entries.
@@ -22,12 +22,7 @@ data Entry = Entry {
     , browser   :: B.ByteString
 } deriving (Show,Eq)
 
--- |Implicit serialisation of UTCTime
-instance Binary UTCTime where
-    put d = put (toUnixSeconds d)
-    get = liftM fromUnixSeconds get
-
--- |Implicit serialisation of URL (handles only host relative URLs} 
+-- |Implicit serialisation of URL (handles only host relative URLs)
 instance Binary URL where
     put (URL host_t path params) = put host_t >> put path >> put params 
     get = liftM3 URL get get get
@@ -55,16 +50,6 @@ instance Binary Entry where
         put response >> put bytes >> put referer >> put browser
     get = return Entry `ap` get `ap` get `ap` get `ap` get `ap` get
           `ap` get `ap` get `ap` get `ap` get `ap` get
-
-unixEpoch = UTCTime (fromGregorian 1970 1 1) 0
-
--- |Converts UTCTime to UNIX time stamp seconds. Please note! This
--- truncates second fractions.
-toUnixSeconds :: UTCTime -> Integer
-toUnixSeconds d = truncate $ diffUTCTime d unixEpoch
-
-fromUnixSeconds :: Integer -> UTCTime
-fromUnixSeconds s = addUTCTime (fromInteger s) unixEpoch
 
 encdec :: (Binary a) => a -> a
 encdec = decode . encode
