@@ -1,4 +1,4 @@
-module Entry (Entry(Entry),codecOK) where
+module Entry (Entry(Entry),codecOK,exportURLWithoutParams,url) where
 
 import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Time.Clock
@@ -54,6 +54,19 @@ instance Binary Entry where
 encdec :: (Binary a) => a -> a
 encdec = decode . encode
 
--- !Tests if data stays the same after encoding and decoding
+-- |Tests if data stays the same after encoding and decoding
 codecOK :: (Binary a, Eq a) => a -> Bool
 codecOK x = x == (decode.encode) x
+
+-- |A modified function from Network.URL. This exports just URL without
+-- parameters.
+exportURLWithoutParams :: URL -> String
+exportURLWithoutParams url = absol ++ the_path
+  where
+  absol       = case url_type url of
+                  Absolute hst -> exportHost hst ++ "/"
+                  HostRelative  -> "/"
+                  PathRelative  -> ""
+
+  the_path    = encString False ok_path (url_path url)
+
