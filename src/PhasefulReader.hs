@@ -49,5 +49,5 @@ readSerialFile f = do
 processEverything :: (NFData b) => (Entry -> a) -> ([a] -> b) -> ([b] -> b) -> [FilePath] -> IO b
 processEverything entryToA listFolder combiner fs = do
   entries <- mapM readSerialFile fs
-  let processedEntries = parMap rnf (listFolder . map entryToA) entries
+  let processedEntries = parMap rdeepseq (listFolder . map entryToA) entries
   return $ combiner processedEntries
