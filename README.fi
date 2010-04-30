@@ -53,6 +53,7 @@ Kääntäminen
 
 $ ghc -O -o apache2data --make ApacheToData.hs
 $ ghc --make -O -o classifier Classifier.hs
+$ ghc -threaded --make -O2 -o parameter_analyzer ParameterAnalyzer.hs
 
 Suorittaminen
 =============
