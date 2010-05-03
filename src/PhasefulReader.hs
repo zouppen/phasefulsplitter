@@ -9,6 +9,7 @@ import Data.Binary.Get
 import Control.Monad (liftM)
 import Codec.Compression.GZip
 import qualified Data.ByteString.Lazy.Char8 as B
+import Control.Parallel
 import Control.Parallel.Strategies
 
 -- Own datatype is introduced because we want to do "infinite"
@@ -46,8 +47,21 @@ readSerialFile f = do
 -- |possible. Takes a function, which transforms Entry to a, then a
 -- |function which folds a's to b (combining a single file) and then a
 -- |function which combines all the results together.
-processEverything :: (NFData b) => (Entry -> a) -> ([a] -> b) -> ([b] -> b) -> [FilePath] -> IO b
-processEverything entryToA listFolder combiner fs = do
+processEverything :: ([[Entry]] -> b) -> [FilePath] -> IO b
+processEverything mapReduceF fs = do
   entries <- mapM readSerialFile fs
-  let processedEntries = parMap rdeepseq (listFolder . map entryToA) entries
-  return $ combiner processedEntries
+  return $ mapReduceF entries
+
+-- |Helper function for reducing data from multiple files etc.
+--Inspiried by the book "Real World Haskell".
+mapReduce
+    :: Strategy b  -- For mapping.
+    -> (a -> b)    -- Mapping function.
+    -> Strategy c  -- For reduction.
+    -> ([b] -> c)  -- Reduce function.
+    -> [a]         -- List to process.
+    -> c
+mapReduce mapStg mapF reduceStg reduceF input =
+    mapResult `pseq` reduceResult
+    where mapResult    = parMap mapStg mapF input
+          reduceResult = reduceF mapResult `using` reduceStg

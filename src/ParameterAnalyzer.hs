@@ -15,13 +15,13 @@ data ResourceStat = ResourceStat {
 } deriving (Show,Eq)
 
 instance NFData ResourceStat where
-  rnf (ResourceStat x y) = rnf x `seq` rnf y
+  rnf (ResourceStat x y) = rnf x `seq` rnf y `seq` ()
 
 main = do
   files <- getArgs
-  result <- processEverything modifier folder combiner files
+  result <- processEverything reduceF files
   putStrLn $ show result
-  
+
 -- |Builds "initial" frequency table one resource and its parameters.
 modifier :: Entry -> (String,ResourceStat)
 modifier e = (exportURLWithoutParams $ url e,ResourceStat 1 paramMap)
@@ -29,8 +29,12 @@ modifier e = (exportURLWithoutParams $ url e,ResourceStat 1 paramMap)
           paramMap = M.fromList $ zip paramNames [1..]
 
 folder = M.fromListWith reduceTwo
+mappingF = folder.(map modifier)
+
 combiner = M.unionsWith reduceTwo
 
 reduceTwo :: ResourceStat -> ResourceStat -> ResourceStat
 reduceTwo (ResourceStat c_1 p_1) (ResourceStat c_2 p_2) =
     ResourceStat (c_1+c_2) (M.unionWith (+) p_1 p_2)
+
+reduceF = mapReduce rdeepseq mappingF rdeepseq combiner
