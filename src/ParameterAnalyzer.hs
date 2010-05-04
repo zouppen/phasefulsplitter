@@ -5,17 +5,24 @@ module Main where
 import qualified Data.Map as M
 import System.Environment
 import Network.URL
+import Control.Parallel.Strategies
+import Data.List
 import PhasefulReader
 import Entry
-import Control.Parallel.Strategies
+import Ngram
+
+data ParamInfo = ParamInfo {
+      paramCount :: Integer                    -- ^Frequency of this parameter.
+    , ngramMap   :: M.Map (Ngram Char) Integer -- ^N-grams.
+    } deriving (Show,Eq)
 
 data ResourceStat = ResourceStat {
-      count  :: Integer            -- Frequency of this resource in the data set
-    , params :: M.Map String Integer -- Key and its number of occurrences
+      resourceCount :: Integer                 -- ^Frequency of this resource.
+    , params        :: M.Map String ParamInfo  -- ^Key and its n-gram.
 } deriving (Show,Eq)
 
-instance NFData ResourceStat where
-  rnf (ResourceStat x y) = rnf x `seq` rnf y `seq` ()
+--instance NFData ResourceStat where
+--  rnf (ResourceStat x y) = rnf x `seq` rnf y `seq` ()
 
 main = do
   files <- getArgs
@@ -23,18 +30,35 @@ main = do
   putStrLn $ show result
 
 -- |Builds "initial" frequency table one resource and its parameters.
-modifier :: Entry -> (String,ResourceStat)
-modifier e = (exportURLWithoutParams $ url e,ResourceStat 1 paramMap)
-    where paramNames = map fst $ url_params $ url e
-          paramMap = M.fromList $ zip paramNames [1..]
+toResourcePair :: Entry -> (String,ResourceStat)
+toResourcePair e = (key,value)
+    where params = url_params $ url e
+          key    = exportURLWithoutParams $ url e
+          value  = ResourceStat 1 $ getAllGrams params
 
-folder = M.fromListWith reduceTwo
-mappingF = folder.(map modifier)
+-- |Forms parameter map for ResourceStat.
+getAllGrams :: [(String, String)] -> M.Map String ParamInfo
+getAllGrams params = M.fromList $ map toGram params
+    where toGram (k,v) = (k,ParamInfo 1 $ frequencyNgram 2 v)
 
-combiner = M.unionsWith reduceTwo
+-- |Combines two ParamInfos (sums n-gram frequencies etc).
+paramSum :: ParamInfo -> ParamInfo -> ParamInfo
+paramSum (ParamInfo count_1 grams_1) (ParamInfo count_2 grams_2) = 
+    ParamInfo (count_1+count_2) (M.unionWith (+) grams_1 grams_2)
 
-reduceTwo :: ResourceStat -> ResourceStat -> ResourceStat
-reduceTwo (ResourceStat c_1 p_1) (ResourceStat c_2 p_2) =
-    ResourceStat (c_1+c_2) (M.unionWith (+) p_1 p_2)
+-- |Combines two ResourceStats into one (sums frequencies etc).
+resourceSum :: ResourceStat -> ResourceStat -> ResourceStat
+resourceSum (ResourceStat count_1 params_1) (ResourceStat count_2 params_2) =
+    ResourceStat (count_1+count_2) (M.unionWith paramSum params_1 params_2)
 
-reduceF = mapReduce rdeepseq mappingF rdeepseq combiner
+insertToPool :: M.Map String ResourceStat -> Entry -> M.Map String ResourceStat
+insertToPool resmap entry = M.insertWith resourceSum (fst res) (snd res) resmap
+    where res = toResourcePair entry
+
+combineF :: [M.Map String ResourceStat] -> M.Map String ResourceStat
+combineF = M.unionsWith resourceSum
+
+mappingF :: [Entry] -> M.Map String ResourceStat
+mappingF = foldl' insertToPool M.empty  
+
+reduceF = mapReduce rwhnf mappingF rwhnf combineF
