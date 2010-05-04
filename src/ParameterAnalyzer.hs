@@ -21,8 +21,11 @@ data ResourceStat = ResourceStat {
     , params        :: M.Map String ParamInfo  -- ^Key and its n-gram.
 } deriving (Show,Eq)
 
---instance NFData ResourceStat where
---  rnf (ResourceStat x y) = rnf x `seq` rnf y `seq` ()
+instance NFData ResourceStat where
+    rnf (ResourceStat x y) = rnf x `seq` rnf y
+
+instance NFData ParamInfo where
+    rnf (ParamInfo x y) = rnf x `seq` rnf y
 
 main = do
   files <- getArgs
@@ -52,7 +55,7 @@ resourceSum (ResourceStat count_1 params_1) (ResourceStat count_2 params_2) =
     ResourceStat (count_1+count_2) (M.unionWith paramSum params_1 params_2)
 
 insertToPool :: M.Map String ResourceStat -> Entry -> M.Map String ResourceStat
-insertToPool resmap entry = M.insertWith resourceSum (fst res) (snd res) resmap
+insertToPool resmap entry = M.insertWith' resourceSum (fst res) (snd res) resmap
     where res = toResourcePair entry
 
 combineF :: [M.Map String ResourceStat] -> M.Map String ResourceStat
@@ -61,4 +64,4 @@ combineF = M.unionsWith resourceSum
 mappingF :: [Entry] -> M.Map String ResourceStat
 mappingF = foldl' insertToPool M.empty  
 
-reduceF = mapReduce rwhnf mappingF rwhnf combineF
+reduceF = mapReduce rdeepseq mappingF rdeepseq combineF

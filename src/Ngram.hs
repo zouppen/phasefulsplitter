@@ -5,9 +5,13 @@
 module Ngram where
 
 import qualified Data.Map as M
+import Control.Parallel.Strategies
 
 data Location = Begin | In | End  deriving (Show,Ord,Eq)
 data Ngram a = Ngram Location [a]  deriving (Show,Ord,Eq)
+
+instance (NFData a) => NFData (Ngram a) where
+    rnf (Ngram loc xs) = loc `seq` rnf xs
 
 -- |Transforms a list into list of slining window n-grams. Wraps
 -- |individual n-grams inside Ngram which takes care of Begin and End
