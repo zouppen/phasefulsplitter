@@ -23,8 +23,9 @@ import Data.List
 -- from a given ByteString. Fits perfectly to unfoldr.
 lazyBinaryListGet :: (Binary t) => B.ByteString -> Maybe (t, B.ByteString)
 lazyBinaryListGet bs | B.null bs = Nothing -- End of file reached
-                      | otherwise = Just $ clean $ runGetState get bs 0
+                     | otherwise = Just $ seqFst $ clean $ runGetState get bs 0
     where clean (entry,bs,_) = (entry,bs)
+          seqFst (entry,x) = entry `seq` (entry,x) -- Evaluate Entry strictly.
 
 -- |Lazily reads a list from lazily serialized form.
 decodeLazyBinaryList :: (Binary t) => B.ByteString -> [t]
