@@ -11,37 +11,30 @@ import Codec.Compression.GZip
 import qualified Data.ByteString.Lazy.Char8 as B
 import Control.Parallel
 import Control.Parallel.Strategies
+import Data.List
 
--- Own datatype is introduced because we want to do "infinite"
--- deserialisation from file to a unknown-length list. List's Binary
--- instance is not sufficient because it puts length of the list in
--- the beginning of data. When serialized lazily, the list length is
--- unknown in the very beginning of file.
-data EntryList = EntryList [Entry]
+-- We are doing our own deserialisation because we want to do
+-- "infinite" deserialisation from file to a unknown-length
+-- list. List's Binary instance is not sufficient because it puts
+-- length of the list in the beginning of data. When serialized
+-- lazily, the list length is unknown in the very beginning of file.
 
-instance Binary EntryList where
-     put x = error $ 
-             "This type is only a workaroud and shouldn't be " ++
-             "serialised. Serialise Entry instead."
-                    
-     get = liftM EntryList getUntilEmpty
-     
--- |A helper function for getting Entries recursively.
-getUntilEmpty :: Get [Entry]
-getUntilEmpty = do
-  stop <- isEmpty
-  if stop
-     then return []
-     else do
-       entry <- get
-       liftM (entry :) getUntilEmpty
+-- |Reads lazily serialised binary Entry plus the remaining ByteString
+-- from a given ByteString. Fits perfectly to unfoldr.
+lazyBinaryListGet :: (Binary t) => B.ByteString -> Maybe (t, B.ByteString)
+lazyBinaryListGet bs | B.null bs = Nothing -- End of file reached
+                      | otherwise = Just $ clean $ runGetState get bs 0
+    where clean (entry,bs,_) = (entry,bs)
+
+-- |Lazily reads a list from lazily serialized form.
+decodeLazyBinaryList :: (Binary t) => B.ByteString -> [t]
+decodeLazyBinaryList = unfoldr lazyBinaryListGet
 
 -- |Reads entries from serialized form. Consumes all data available.
 readSerialFile :: FilePath -> IO [Entry]
 readSerialFile f = do
   fileData <- B.readFile f
-  return $ dropWrapper $ decode $ decompress fileData
-    where dropWrapper (EntryList e) = e
+  return $ decodeLazyBinaryList $ decompress fileData
 
 -- |The ugly and fat processor which tries to be as optimal as
 -- |possible. Takes a function, which transforms Entry to a, then a
