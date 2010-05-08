@@ -4,13 +4,19 @@ module UTCTimeExts where
 
 import Data.Binary
 import Data.Time.Clock
-import Data.Time.Calendar (fromGregorian)
+import Data.Time.Calendar
 import Control.Monad (liftM)
+import Control.DeepSeq
+
 
 -- |Implicit serialisation of UTCTime, drops milliseconds silently.
 instance Binary UTCTime where
     put d = put (toUnixSeconds d)
     get = liftM fromUnixSeconds get
+
+-- |Little dummy parser.
+instance NFData UTCTime where
+    rnf x = rnf (toUnixSeconds x)
 
 unixEpoch = UTCTime (fromGregorian 1970 1 1) 0
 

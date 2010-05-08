@@ -11,6 +11,7 @@ import Codec.Compression.GZip
 import qualified Data.ByteString.Lazy.Char8 as B
 import Control.Parallel
 import Control.Parallel.Strategies
+import Control.DeepSeq
 import Data.List
 
 -- We are doing our own deserialisation because we want to do
@@ -21,14 +22,14 @@ import Data.List
 
 -- |Reads lazily serialised binary Entry plus the remaining ByteString
 -- from a given ByteString. Fits perfectly to unfoldr.
-lazyBinaryListGet :: (Binary t) => B.ByteString -> Maybe (t, B.ByteString)
+lazyBinaryListGet :: (Binary t, NFData t) => B.ByteString -> Maybe (t, B.ByteString)
 lazyBinaryListGet bs | B.null bs = Nothing -- End of file reached
                      | otherwise = Just $ seqFst $ clean $ runGetState get bs 0
     where clean (entry,bs,_) = (entry,bs)
-          seqFst (entry,x) = entry `seq` (entry,x) -- Evaluate Entry strictly.
+          seqFst (entry,x) = entry `deepseq` (entry,x) -- Evaluate Entry strictly.
 
 -- |Lazily reads a list from lazily serialized form.
-decodeLazyBinaryList :: (Binary t) => B.ByteString -> [t]
+decodeLazyBinaryList :: (Binary t, NFData t) => B.ByteString -> [t]
 decodeLazyBinaryList = unfoldr lazyBinaryListGet
 
 -- |Reads entries from serialized form. Consumes all data available.
