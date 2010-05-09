@@ -6,6 +6,7 @@ import qualified Data.Map as M
 import System.Environment
 import Network.URL
 import Control.Parallel.Strategies
+import Control.DeepSeq
 import Data.List
 import PhasefulReader
 import Entry
@@ -55,7 +56,7 @@ resourceSum (ResourceStat count_1 params_1) (ResourceStat count_2 params_2) =
     ResourceStat (count_1+count_2) (M.unionWith paramSum params_1 params_2)
 
 insertToPool :: M.Map String ResourceStat -> Entry -> M.Map String ResourceStat
-insertToPool resmap entry = M.insertWith' resourceSum (fst res) (snd res) resmap
+insertToPool resmap entry = resmap `deepseq` res `deepseq` M.insertWith' resourceSum (fst res) (snd res) resmap
     where res = toResourcePair entry
 
 combineF :: [M.Map String ResourceStat] -> M.Map String ResourceStat

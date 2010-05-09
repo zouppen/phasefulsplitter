@@ -22,14 +22,13 @@ import Data.List
 
 -- |Reads lazily serialised binary Entry plus the remaining ByteString
 -- from a given ByteString. Fits perfectly to unfoldr.
-lazyBinaryListGet :: (Binary t, NFData t) => B.ByteString -> Maybe (t, B.ByteString)
+lazyBinaryListGet :: (Binary t) => B.ByteString -> Maybe (t, B.ByteString)
 lazyBinaryListGet bs | B.null bs = Nothing -- End of file reached
-                     | otherwise = Just $ seqFst $ clean $ runGetState get bs 0
+                     | otherwise = Just $ clean $ runGetState get bs 0
     where clean (entry,bs,_) = (entry,bs)
-          seqFst (entry,x) = entry `deepseq` (entry,x) -- Evaluate Entry strictly.
 
 -- |Lazily reads a list from lazily serialized form.
-decodeLazyBinaryList :: (Binary t, NFData t) => B.ByteString -> [t]
+decodeLazyBinaryList :: (Binary t) => B.ByteString -> [t]
 decodeLazyBinaryList = unfoldr lazyBinaryListGet
 
 -- |Reads entries from serialized form. Consumes all data available.

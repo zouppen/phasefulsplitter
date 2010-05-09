@@ -7,7 +7,7 @@ module Ngram where
 import qualified Data.Map as M
 import Control.Parallel.Strategies
 
-data Location = Begin | In | End  deriving (Show,Ord,Eq)
+data Location = BeginEnd | Begin | In | End  deriving (Show,Ord,Eq)
 data Ngram a = Ngram Location [a]  deriving (Show,Ord,Eq)
 
 instance (NFData a) => NFData (Ngram a) where
@@ -17,7 +17,13 @@ instance (NFData a) => NFData (Ngram a) where
 -- |individual n-grams inside Ngram which takes care of Begin and End
 -- |tokens.
 nGrams :: Int -> [a] -> [Ngram a]
-nGrams n xs = (Ngram Begin [head xs]):(Ngram End [last xs]):(map (Ngram In) $ rawNgram n xs)
+nGrams _ [] = [Ngram BeginEnd []] -- Special gram for empty string.
+nGrams n xs = (Ngram Begin (take (n-1) xs)):
+              (Ngram End (takeEnd (n-1) xs)):
+              (map (Ngram In) $ rawNgram n xs)
+
+-- |Takes a substring from end of given string.
+takeEnd n s = drop (length s - n) s
 
 -- |Produces n-grams in /raw/ form. That is an n-gram without Begin
 -- |and End tokens.
