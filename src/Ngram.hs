@@ -4,14 +4,33 @@
 
 module Ngram where
 
+import Data.Binary
 import qualified Data.Map as M
 import Control.Parallel.Strategies
+import Control.Monad (liftM2)
 
 data Location = BeginEnd | Begin | In | End  deriving (Show,Ord,Eq)
 data Ngram a = Ngram Location [a]  deriving (Show,Ord,Eq)
 
 instance (NFData a) => NFData (Ngram a) where
     rnf (Ngram loc xs) = loc `seq` rnf xs
+
+instance (Binary a) => Binary (Ngram a) where
+    put (Ngram a b) = put a >> put b
+    get = liftM2 Ngram get get
+    
+instance Binary Location where
+    put BeginEnd = putWord8 0
+    put Begin    = putWord8 1
+    put In       = putWord8 2
+    put End      = putWord8 3
+    get = do 
+      t <- getWord8
+      return $ case t of
+                 0 -> BeginEnd
+                 1 -> Begin
+                 2 -> In
+                 3 -> End
 
 -- |Transforms a list into list of slining window n-grams. Wraps
 -- |individual n-grams inside Ngram which takes care of Begin and End

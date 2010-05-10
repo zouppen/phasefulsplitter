@@ -17,7 +17,8 @@ on Debian Squeeze tai uudempi, voit komentaa:
 
 On olemassa myös paketti libghc6-regex-tdfa-dev, mutta se on
 (toistaiseksi) vain unstablessa. Voit poimia sen apt-pinningillä tai
-asentaa Cabalilla. Lisäksi paketti 'parallel' löytyy, mutta liian vanhana versiona. Siispä suosittelen seuraavaa:
+asentaa Cabalilla. Lisäksi paketti 'parallel' löytyy, mutta liian
+vanhana versiona. Siispä suosittelen seuraavaa:
 
 $ cabal update
 $ cabal install regex-tdfa
@@ -51,8 +52,8 @@ $ cabal install parallel
 Kääntäminen
 ===========
 
-$ ghc -O -o apache2data --make ApacheToData.hs
-$ ghc --make -O -o classifier Classifier.hs
+$ ghc --make -O2 -o apache2data ApacheToData.hs
+$ ghc --make -O2 -o classifier Classifier.hs
 $ ghc -threaded --make -O2 -o parameter_analyzer ParameterAnalyzer.hs
 
 Suorittaminen
@@ -106,10 +107,35 @@ ytimellä ja kirjoitetaan 8 eri tiedostoon kukin. Jako mahdollistaa
 tehokkaan jälkikäsittelyn, koska tiedostojen sisältöä on mahdollista
 käsitellä myöhemmin samanaikaisesti.
 
-ls lists/*| xargs -n 1 -I{} -P 8 ./apache2data 8 {} data/
+$ ls lists/*| xargs -n 1 -I{} -P 8 ./apache2data 8 {} data/
 
-Jatkokäsittely
---------------
+N-grammianalyysi
+----------------
+
+N-grammianalyysissä ensin kerätään tiedot niistä n-grammeista, jotka
+esiintyvät datassa. ParameterAnalyzer.hs:ssä on kiinteästi määritelty
+2-grammien laskeminen, mutta tätä vakiota voi helposti muuttaa.
+N-grammien esiintyvyyskartan laatiminen on välttämätöntä muistin
+säästämiseksi. Muutoin muodostuisi 256^n kokoinen vektori, kun
+käsiteltävät merkkijonot koostuvat Word8-tyypeistä (8-bittinen tavu).
+
+N-grammilistoja muodostuu yhtä paljon kuin on eri resurssien
+get-parametreja. Tämä vaihtelee runsaasti eri Web-palveluissa.
+Lopputulos on kuitenkin vain murto-osa alkuperäisen datamassan
+suuruudesta.
+
+Muodostetaan yhdelle palvelulle 2-grammit. Mene hakemistoon, jossa
+palvelun datatiedostot ovat (eli sinne, josta löytyy mm. 1.pf.gz:
+
+$ parameter_analyzer *.pf.gz +RTS -N
+
+Hakemistoon muodostuu ajon seurauksena tiedostot 'ngrams.out' ja
+'ngrams_raw.txt'. Näistä ensimmäinen on binaarimuodossa ja sisältää
+datan jatkokäsittelyä varten. Toisessa tiedostossa on tekstimuodossa
+(Haskellin show-muodossa) eri resurssien ja n-grammien
+esiintymistiheydet. Sitä voi käyttää apuna selvittäessä, mitä
+kannattaisi tuttkia. Tutkiminen kannattaa keskittää palveluihin,
+joissa on runsaasti parametreja.
 
 TODO
 

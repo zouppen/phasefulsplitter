@@ -2,7 +2,9 @@
 
 module Main where
 
+import Data.Binary
 import qualified Data.Map as M
+import Control.Monad (liftM2)
 import System.Environment
 import Network.URL
 import Control.Parallel.Strategies
@@ -28,10 +30,20 @@ instance NFData ResourceStat where
 instance NFData ParamInfo where
     rnf (ParamInfo x y) = rnf x `seq` rnf y
 
+instance Binary ResourceStat where
+    put (ResourceStat a b) = put a >> put b
+    get = liftM2 ResourceStat get get
+    
+instance Binary ParamInfo where
+    put (ParamInfo a b) = put a >> put b
+    get = liftM2 ParamInfo get get
+
 main = do
   files <- getArgs
   result <- processEverything reduceF files
-  putStrLn $ show result
+  writeFile "ngrams_raw.txt" $ show result
+  encodeFile "ngrams.out" $ flatMap result
+  putStrLn "Processing ready."
 
 -- |Builds "initial" frequency table one resource and its parameters.
 toResourcePair :: Entry -> (String,ResourceStat)
@@ -56,13 +68,23 @@ resourceSum (ResourceStat count_1 params_1) (ResourceStat count_2 params_2) =
     ResourceStat (count_1+count_2) (M.unionWith paramSum params_1 params_2)
 
 insertToPool :: M.Map String ResourceStat -> Entry -> M.Map String ResourceStat
-insertToPool resmap entry = resmap `deepseq` res `deepseq` M.insertWith' resourceSum (fst res) (snd res) resmap
+insertToPool resmap entry = resmap `deepseq` res `deepseq` M.insertWith resourceSum (fst res) (snd res) resmap
     where res = toResourcePair entry
 
 combineF :: [M.Map String ResourceStat] -> M.Map String ResourceStat
 combineF = M.unionsWith resourceSum
 
 mappingF :: [Entry] -> M.Map String ResourceStat
-mappingF = foldl' insertToPool M.empty  
+mappingF = foldl' insertToPool M.empty
 
-reduceF = mapReduce rdeepseq mappingF rdeepseq combineF
+reduceF = mapReduce rwhnf mappingF rwhnf combineF
+
+flatMap :: M.Map String ResourceStat 
+        -> M.Map String (M.Map String [Ngram Char])
+flatMap = M.map flatRs
+
+flatPi :: ParamInfo -> [Ngram Char]
+flatPi (ParamInfo _ grams) = M.keys grams
+
+flatRs :: ResourceStat -> M.Map String [Ngram Char] 
+flatRs (ResourceStat _ params) = M.map flatPi params
