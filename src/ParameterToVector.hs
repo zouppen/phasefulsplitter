@@ -1,10 +1,12 @@
-module ParameterToVector where
+module Main where
 
 import System.IO
 import Data.List
 import Data.List.Split
 import Data.Binary
-import Control.DeepSeq
+--import Control.DeepSeq
+import Control.Monad
+import System.Environment
 import qualified Data.Set as S
 import qualified Data.Map as M
 import qualified Entry as E
@@ -13,13 +15,18 @@ import PhasefulReader
 import Ngram
 
 type ResourceGramMap = M.Map String (M.Map String [Ngram Char])
---type ResourceMap = M.Map String Int
 
 -- Using n-sized chunks balance between open file limit and memory
 -- constraints.
 entryChunkSize = 1000
 
--- Reads a file, splits it by resources and and writes to files.
+main = do
+  args <- getArgs
+  when (length args /= 3) $ error "Usage: parameter2vector gram_file input_file out_prefix"
+  processFile (args !! 0) (args !! 2) (args !! 1)
+  putStrLn "Done!"
+
+-- |Reads a file, splits it by resources and and writes to files.
 processFile :: FilePath -> FilePath -> FilePath -> IO ()
 processFile gramFile prefix fromFile = do
   -- Getting resource names and some extra info.
