@@ -40,9 +40,11 @@ chunkedFile file = do
 writeResources file res = writeFile file $ show $ M.toList res
 
 -- |Processes one chunk into files.
-processChunk :: (E.Entry -> Integer) -> String -> [E.Entry] -> IO ()
-processChunk entryIx prefix es = do
-  return () --TODO
+processChunk :: (E.Entry -> Int) -> String -> [E.Entry] -> IO ()
+processChunk entryIx prefix es = mapM_ writeAll $ M.toList entryMap
+    where entryMap = groupChunk entryIx es
+          writeAll (k,vs) = appendFile (prefix++show k) $ encodeAll vs
+          encodeAll vs = show vs
 
 -- |Efficient inserts and element into list which is inside a value of
 -- |a Map. Contains no hazardous substances of 'concat'.
@@ -51,30 +53,27 @@ updateListMap' m (k,v) = m `seq` (k,v) `seq` M.insert k (v:vs) m
     where vs = M.findWithDefault [] k m
 
 -- |Returns a function which converts Entry to the index number of its resource.
-entryToResourceIx :: ResourceGramMap -> E.Entry -> Integer
-entryToResourceIx m = entryToI
+entryToResourceIx :: ResourceGramMap -> E.Entry -> Int
+entryToResourceIx m e = (M.!) resMap $ E.exportURLWithoutParams $ E.url e
   where resMap = resourceToIxMap m
-        entryToI e = (M.!) resMap $ E.exportURLWithoutParams $ E.url e
         
 -- |Converts a resource map to index map. Used in giving distinct and
 -- |easy-to-type names for files.
-resourceToIxMap :: ResourceGramMap -> M.Map String Integer
+resourceToIxMap :: ResourceGramMap -> M.Map String Int
 resourceToIxMap m = M.fromDistinctAscList $ zip (M.keys m) [1..]
 
+groupChunk :: (E.Entry->Int) -> [E.Entry] -> M.Map Int [E.Entry]
+groupChunk entryToI es = combineListToMap $ map mapper es
+    where mapper x = (entryToI x,x)
+          combineListToMap xs = foldl' updateListMap' M.empty xs
 
 -- TRASH BELOW THIS LINE --
 
 {-
 
-groupChunk :: (E.Entry->Int) -> [E.Entry] -> M.Map Int [E.Entry]
-groupChunk entryToI es = combineListToMap $ map mapper es
-    where mapper x = (entryToI x,x)
-
 -- |Groups a list to a map where fst is the key.
 combineListToMap :: (Ord a, NFData a, NFData b) => 
                     [(a,b)] -> M.Map a [b]
-combineListToMap xs = foldl' updateListMap M.empty xs
-
 
 -- processChunk :: (E.Entry->Int) -> FilePath -> [E.Entry] -> IO ()
 -- processChunk entryToI prefix es = writeChunk prefix groups
