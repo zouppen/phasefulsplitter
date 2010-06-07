@@ -1,4 +1,4 @@
-module Entry (Entry(Entry),codecOK,exportURLWithoutParams,url) where
+module Entry where
 
 import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Time.Clock

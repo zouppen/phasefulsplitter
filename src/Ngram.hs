@@ -32,7 +32,7 @@ instance Binary Location where
                  2 -> In
                  3 -> End
 
--- |Transforms a list into list of slining window n-grams. Wraps
+-- |Transforms a list into list of sliding window n-grams. Wraps
 -- |individual n-grams inside Ngram which takes care of Begin and End
 -- |tokens.
 nGrams :: Int -> [a] -> [Ngram a]
