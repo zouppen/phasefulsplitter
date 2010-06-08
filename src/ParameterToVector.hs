@@ -14,6 +14,7 @@ import qualified Data.ByteString.Lazy.Char8 as B
 import PhasefulReader
 import Ngram
 import LineInfo
+import URLNGram
 
 type ResourceGramMap = M.Map String (M.Map String [Ngram Char])
 type EntryToIx = E.Entry -> Int
@@ -49,11 +50,11 @@ chunkedFile file = do
 writeResources file res = writeFile file $ show $ M.toList res
 
 -- |Processes one chunk into files.
-processChunk :: EntryToIx -> (E.Entry -> String) -> String -> [E.Entry] -> IO ()
+processChunk :: EntryToIx -> (EntryToIx -> E.Entry -> String) -> String -> [E.Entry] -> IO ()
 processChunk entryIx converter prefix es = mapM_ writeAll $ M.toList entryMap
     where entryMap = groupChunk entryIx es
           writeAll (k,vs) = appendFile (prefix++show k) $ encodeAll vs
-          encodeAll vs = unlines $ map converter vs
+          encodeAll vs = unlines $ map (converter entryIx) vs
 
 -- |Efficiently inserts and element into list which is inside a value
 -- of a Map. Contains no hazardous substances of 'concat'.
@@ -82,25 +83,37 @@ data GramOut = GramOut {
     , protocol :: B.ByteString
     , response :: Integer
     , bytesLn2 :: Integer
+    , resource :: Int
     , gramVector :: [Integer]
-}
+    }
 
 -- |Converts the given Entry to text.
-entryToText resMap = vectorToText.(entryToVector resMap)
+entryToText resMap eToIx = vectorToText.(entryToVector resMap eToIx)
 
 -- |Converts an Entry to GramOut data structure.
-entryToVector :: ResourceGramMap -> E.Entry -> GramOut
-entryToVector gramMap e =
-  GramOut (E.info e) (E.method e) (E.protocol e) (E.response e) bytesLn grams
+entryToVector :: ResourceGramMap -> EntryToIx -> E.Entry -> GramOut
+entryToVector gramMap eToIx e =
+  GramOut (E.info e) (E.method e) (E.protocol e) (E.response e) bytesLn res grams
         where bytesLn = floor $ logBase 2 $ fromInteger $ E.bytes e
-              grams = [] --FIXME
+              resPair = toResourcePair e              
+              res = eToIx e
+              grams = resourceVector ((M.!) gramMap (fst resPair)) (snd resPair)
 
 -- |Converts GramOut to a nice "string vector".
 vectorToText :: GramOut -> String
-vectorToText (GramOut (LineInfo a b c) method protocol response bytesLn2 gramVector) =
+vectorToText (GramOut (LineInfo a b c) method protocol response bytesLn2 resource gramVector) =
     intercalate "," $ show a:show b:show c:B.unpack method:B.unpack protocol:
-                show response:show bytesLn2:map show gramVector
+                show response:show bytesLn2:show resource:map show gramVector
                      
+resourceVector :: (M.Map String [Ngram Char]) -> ResourceStat -> [Integer]
+resourceVector gramMap (ResourceStat _ paramMap) =
+    concat $ map (paramVector paramMap) (M.toList gramMap)
+
+paramVector :: (M.Map String ParamInfo) -> (String,[Ngram Char]) -> [Integer]
+paramVector curParams (param,grams) = nGramToVector grams curGrams
+    where curGrams = case M.lookup param curParams of
+                       Nothing -> M.empty
+                       Just (ParamInfo _ x) -> x
 
 -- TRASH BELOW THIS LINE --
 

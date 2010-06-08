@@ -64,13 +64,12 @@ frequencyNgram n xs = frequencyMap $ nGrams n xs
 giganticFrequencyNgram :: (Ord a) => Int -> [[a]] -> M.Map (Ngram a) Integer
 giganticFrequencyNgram n xss = frequencyMap $ concat $ map (nGrams n) xss
 
--- |Returns a vectorized (=list) form of n-gram. The second parameter
--- is zero map containing all possible n-grams as keys. Zero map can
--- be generated from 'giganticFrequencyNgram' result with
--- 'toZeroMap'. Vectorized form can be used as output to dimension
--- reduction algorithms.
-nGramVector :: (Ord k) => [k] -> M.Map k Integer -> [Integer]
-nGramVector keyList x = map (getGramCount x) keyList
+-- |Returns a vectorized (=list) form of n-gram. The first parameter
+-- |is list of all possible (or interesting n-grams) and the second
+-- |parameter is gram map of current n-grams. Function returns a list
+-- |(vector) of frequencies.
+nGramToVector :: (Ord k) => [k] -> M.Map k Integer -> [Integer]
+nGramToVector keyList x = map (getGramCount x) keyList
 
 -- |Returns zero if a key is not found in that map, otherwise returns
 -- |the value.
