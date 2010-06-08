@@ -1,4 +1,4 @@
-module URLNGram where
+module URLNgram where
 
 import Data.Binary
 import qualified Data.Map as M

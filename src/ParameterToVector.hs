@@ -14,7 +14,8 @@ import qualified Data.ByteString.Lazy.Char8 as B
 import PhasefulReader
 import Ngram
 import LineInfo
-import URLNGram
+import URLNgram
+import Helpers (findWithErrorF)
 
 type ResourceGramMap = M.Map String (M.Map String [Ngram Char])
 type EntryToIx = E.Entry -> Int
@@ -94,7 +95,7 @@ entryToText resMap eToIx = vectorToText.(entryToVector resMap eToIx)
 entryToVector :: ResourceGramMap -> EntryToIx -> E.Entry -> GramOut
 entryToVector gramMap eToIx e =
   GramOut (E.info e) (E.method e) (E.protocol e) (E.response e) bytesLn res grams
-        where bytesLn = floor $ logBase 2 $ fromInteger $ E.bytes e
+        where bytesLn = fancyMagnitude $ E.bytes e
               resPair = toResourcePair e              
               res = eToIx e
               grams = resourceVector ((M.!) gramMap (fst resPair)) (snd resPair)
@@ -102,8 +103,10 @@ entryToVector gramMap eToIx e =
 -- |Converts GramOut to a nice "string vector".
 vectorToText :: GramOut -> String
 vectorToText (GramOut (LineInfo a b c) method protocol response bytesLn2 resource gramVector) =
-    intercalate "," $ show a:show b:show c:B.unpack method:B.unpack protocol:
+    intercalate "," $ show a:show b:show c:show methodIx:show protoIx:
                 show response:show bytesLn2:show resource:map show gramVector
+                  where protoIx = mapToNumber httpProtocols protocol
+                        methodIx = mapToNumber httpMethods method
                      
 resourceVector :: (M.Map String [Ngram Char]) -> ResourceStat -> [Integer]
 resourceVector gramMap (ResourceStat _ paramMap) =
@@ -115,35 +118,16 @@ paramVector curParams (param,grams) = nGramToVector grams curGrams
                        Nothing -> M.empty
                        Just (ParamInfo _ x) -> x
 
--- TRASH BELOW THIS LINE --
+httpMethods = map B.pack ["HEAD","GET","POST","PUT","DELETE","TRACE","OPTIONS",
+                          "CONNECT","PATCH"]
 
-{-
+httpProtocols = map B.pack ["HTTP/1.0","HTTP/1.1"]
 
--- |Groups a list to a map where fst is the key.
-combineListToMap :: (Ord a, NFData a, NFData b) => 
-                    [(a,b)] -> M.Map a [b]
+-- |Maps name to a number. Usual type for k is String.
+mapToNumber :: (Show k, Ord k, Integral a) => [k] -> k -> a
+mapToNumber list = findWithErrorF msg $ M.fromList $ zip list [1..] 
+  where msg x = "HTTP-koodia "++show x++" ei löytynyt."
 
--- processChunk :: (E.Entry->Int) -> FilePath -> [E.Entry] -> IO ()
--- processChunk entryToI prefix es = writeChunk prefix groups
--- where groups = groupChunk entryToI es
-
--- |Writes the given chunk to files. A chunk contains multiple resources.
---writeChunk :: Binary b => FilePath -> M.Map a [b] -> IO ()
---writeChunk prefix m = mapM_ (writeSingle prefix) list
---    where list = zip [1..] (M.elems m) --FIXME!
-
--- |Writes one resource data to output file.
---writeSingle :: Binary a => FilePath -> (Int, [a]) -> IO ()
---writeSingle prefix (i,as) = do
---  h <- openFile (prefix ++ show i) AppendMode
---  mapM_ ((B.hPut h) . encode) as
---  hClose h
-
--- |Filter which keeps all those "interesting" resources. Not tested.
-filterInteresting :: [String] -> [E.Entry] -> [E.Entry]
-filterInteresting rs es = set `deepseq` myFilter
-    where set = S.fromList rs
-          myFilter = filter (test . E.exportURLWithoutParams . E.url) es
-          test x = S.member x set
-
--}
+-- |Calculates "fancy" magnitude of a number. That's modified base 2 logarithm.
+fancyMagnitude 0 = 0
+fancyMagnitude x = 1 + (floor $ logBase 2 $ fromInteger x)
