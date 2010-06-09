@@ -11,12 +11,12 @@ import Entry
 data ParamInfo = ParamInfo {
       paramCount :: Integer                    -- ^Frequency of this parameter.
     , ngramMap   :: M.Map (Ngram Char) Integer -- ^N-grams.
-    } deriving (Show,Eq)
+    } deriving (Show,Read,Eq)
 
 data ResourceStat = ResourceStat {
       resourceCount :: Integer                 -- ^Frequency of this resource.
     , params        :: M.Map String ParamInfo  -- ^Key and its n-gram.
-} deriving (Show,Eq)
+} deriving (Show,Read,Eq)
 
 instance NFData ResourceStat where
     rnf (ResourceStat x y) = rnf x `seq` rnf y

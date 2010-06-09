@@ -28,3 +28,8 @@ showNiceList (x:xs) = showChar '[' . shows x . showl xs
 -- contains n elements anyway.
 unmerge :: Int -> [a] -> [[a]]
 unmerge n list = take n $ transpose $ splitEvery n list
+
+-- |Converts any map to index map. Used in giving distinct and
+-- |easy-to-type names for files.
+toIxMap :: (Integral b) => M.Map k a -> M.Map k b
+toIxMap m = M.fromDistinctAscList $ zip (M.keys m) [1..]

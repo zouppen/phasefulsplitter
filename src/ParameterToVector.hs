@@ -15,7 +15,7 @@ import PhasefulReader
 import Ngram
 import LineInfo
 import URLNgram
-import Helpers (findWithErrorF)
+import Helpers (findWithErrorF,toIxMap)
 
 type ResourceGramMap = M.Map String (M.Map String [Ngram Char])
 type EntryToIx = E.Entry -> Int
@@ -36,7 +36,7 @@ processFile gramFile prefix fromFile = do
   -- Getting resource names and some extra info.
   gramMap <- decodeFile gramFile
   -- Writes a resource numbering scheme to a file.
-  writeResources (prefix++"resources.txt") $ resourceToIxMap gramMap
+  writeResources (prefix++"resources.txt") $ toIxMap gramMap
   -- Gets resources from file as nice chunks.
   entryChunks <- chunkedFile fromFile
   -- Processes chunks in a sequence.
@@ -66,12 +66,7 @@ updateListMap' m (k,v) = m `seq` (k,v) `seq` M.insert k (v:vs) m
 -- |Returns a function which converts Entry to the index number of its resource.
 entryToResourceIx :: ResourceGramMap -> EntryToIx
 entryToResourceIx m e = (M.!) resMap $ E.exportURLWithoutParams $ E.url e
-  where resMap = resourceToIxMap m
-        
--- |Converts a resource map to index map. Used in giving distinct and
--- |easy-to-type names for files.
-resourceToIxMap :: ResourceGramMap -> M.Map String Int
-resourceToIxMap m = M.fromDistinctAscList $ zip (M.keys m) [1..]
+  where resMap = toIxMap m
 
 groupChunk :: EntryToIx -> [E.Entry] -> M.Map Int [E.Entry]
 groupChunk entryToI es = combineListToMap $ map mapper es

@@ -9,8 +9,8 @@ import qualified Data.Map as M
 import Control.Parallel.Strategies
 import Control.Monad (liftM2)
 
-data Location = BeginEnd | Begin | In | End  deriving (Show,Ord,Eq)
-data Ngram a = Ngram Location [a]  deriving (Show,Ord,Eq)
+data Location = BeginEnd | Begin | In | End  deriving (Show,Read,Ord,Eq)
+data Ngram a = Ngram Location [a]  deriving (Show,Read,Ord,Eq)
 
 instance (NFData a) => NFData (Ngram a) where
     rnf (Ngram loc xs) = loc `seq` rnf xs
