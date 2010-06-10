@@ -6,6 +6,7 @@ module LineInfoConvert where
 import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.Map as M
 import Data.List
+import Data.List.Split
 import Control.Monad
 import Codec.Compression.GZip
 import LineInfo
@@ -45,3 +46,19 @@ niceLineOutput :: LineInfo -> B.ByteString -> B.ByteString
 niceLineOutput (LineInfo a b c) line =
     B.intercalate (B.pack " ") [(toBS a),(toBS b),(toBS c),line]
     where toBS x = B.pack $ show x
+
+-- |"Zipola format" is Matlab text output I often get from my workmate.
+readZipolaFormat :: String -> (Integer,LineInfo)
+readZipolaFormat line = (readI 3,LineInfo (readI 0) (readI 1) (readI 2))
+  where elems = split (dropInitBlank . condense . dropDelims $ oneOf " \t") line
+        readI i = read $ elems !! i
+
+-- |Read an entire "Zipola formatted" file.
+readZipolaFile :: FilePath -> IO [(Integer,LineInfo)]
+readZipolaFile f = do
+  contents <- readFile f
+  return $ map readZipolaFormat $ filter (not.empty) $ lines contents
+
+empty [] = True
+empty ('#':_) = True
+empty _ = False
