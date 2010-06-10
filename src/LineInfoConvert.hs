@@ -33,7 +33,7 @@ getLogLine fMap lineInfo = do
   return $ genericIndex (B.lines $ decompress contents) line
     where fileInfo = lineInfo{lineNo = 0}
           fileName = (M.!) fMap fileInfo
-          line = lineNo fileInfo - 1  -- LineInfo indices do start from one.
+          line = lineNo lineInfo - 1  -- LineInfo indices do start from one.
           
 printLogLines :: FilePath -> [LineInfo] -> IO ()
 printLogLines fileList xs = do
