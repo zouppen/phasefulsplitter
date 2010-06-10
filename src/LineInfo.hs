@@ -8,7 +8,7 @@ data LineInfo = LineInfo {
       fileId   :: Integer
     , serverId :: Integer
     , lineNo   :: Integer
-} deriving (Show,Read,Eq)
+} deriving (Show,Read,Ord,Eq)
 
 instance Binary LineInfo where
     put (LineInfo file_id line server_id) = put file_id >> put line >> put server_id
