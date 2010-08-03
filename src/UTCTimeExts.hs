@@ -23,3 +23,17 @@ toUnixSeconds d = truncate $ diffUTCTime d unixEpoch
 
 fromUnixSeconds :: Integer -> UTCTime
 fromUnixSeconds s = addUTCTime (fromInteger s) unixEpoch
+
+-- Unix timestamp units
+hourLen = 60*60
+dayLen = 24*hourLen
+weekLen = 7*dayLen
+
+hour :: UTCTime -> Integer
+hour d = (toUnixSeconds d) `mod` dayLen `div` hourLen
+
+dayOfWeek :: UTCTime -> Integer
+dayOfWeek d = fixDay $ (toUnixSeconds d) `mod` weekLen `div` dayLen
+
+fixDay unix = (unix + 3) `mod` 7 + 1
+

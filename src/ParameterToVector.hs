@@ -16,6 +16,7 @@ import Ngram
 import LineInfo
 import URLNgram
 import Helpers (findWithErrorF,toIxMap)
+import qualified UTCTimeExts as U (hour,dayOfWeek)
 
 type ResourceGramMap = M.Map String (M.Map String [Ngram Char])
 type EntryToIx = E.Entry -> Int
@@ -75,6 +76,8 @@ groupChunk entryToI es = combineListToMap $ map mapper es
 
 data GramOut = GramOut {
       info :: LineInfo
+    , hour     :: Integer
+    , weekDay  :: Integer
     , method :: B.ByteString
     , protocol :: B.ByteString
     , response :: Integer
@@ -89,7 +92,7 @@ entryToText resMap eToIx = vectorToText.(entryToVector resMap eToIx)
 -- |Converts an Entry to GramOut data structure.
 entryToVector :: ResourceGramMap -> EntryToIx -> E.Entry -> GramOut
 entryToVector gramMap eToIx e =
-  GramOut (E.info e) (E.method e) (E.protocol e) (E.response e) bytesLn res grams
+  GramOut (E.info e) (U.hour $ E.date e) (U.dayOfWeek $ E.date e) (E.method e) (E.protocol e) (E.response e) bytesLn res grams
         where bytesLn = fancyMagnitude $ E.bytes e
               resPair = toResourcePair e              
               res = eToIx e
@@ -97,8 +100,8 @@ entryToVector gramMap eToIx e =
 
 -- |Converts GramOut to a nice "string vector".
 vectorToText :: GramOut -> String
-vectorToText (GramOut (LineInfo a b c) method protocol response bytesLn2 resource gramVector) =
-    intercalate "," $ show a:show b:show c:show methodIx:show protoIx:
+vectorToText (GramOut (LineInfo a b c) hour weekDay method protocol response bytesLn2 resource gramVector) =
+    intercalate "," $ show a:show b:show c:show hour:show weekDay:show methodIx:show protoIx:
                 show response:show bytesLn2:show resource:map show gramVector
                   where protoIx = mapToNumber httpProtocols protocol
                         methodIx = mapToNumber httpMethods method
