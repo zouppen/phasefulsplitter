@@ -43,6 +43,22 @@ filterGrams x = 9 < (grams x)
 
 getRelevant m = M.filter filterAll $ M.map interesting m
 
-printRelevant m = putStr $ unlines $ map resStr $ M.keys $ getRelevant m
-    where resStr k = (show $ ix k) ++ " " ++ k
+printRelevant m = putStr $ unlines $ map resStr $ produceRelevant m
+    where resStr (ix,v) = (show $ ix) ++ " " ++ show v
+
+-- |Produces list of relevant resources.
+produceRelevant m = map resPair $ M.toList $ getRelevant m
+    where resPair (k,v) = (ix k,v)
           ix x = (M.!) (toIxMap m) x
+
+-- |Produces CSV and text listings of the interesting services.
+writeRelevantInfo infile outPrefix = do
+  grams <- readGramInfo infile
+  let relevant = produceRelevant grams
+  writeFile (outPrefix++".txt") $ unlines $ map showRelText relevant
+  writeFile (outPrefix++".csv") $ unlines $ map showRelCsv relevant
+  
+ 
+showRelText (ix,v) = concat [show ix," ",show v]
+showRelCsv (ix,(Interesting a b c d)) =
+  intercalate "," [show ix,show a,show b,show c,show d]
