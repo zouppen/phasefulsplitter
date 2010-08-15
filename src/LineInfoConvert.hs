@@ -10,6 +10,7 @@ import Data.List.Split
 import Control.Monad
 import Codec.Compression.GZip
 import LineInfo
+import System.IO.Unsafe(unsafeInterleaveIO)
 
 type RawFileList = (String,[(LineInfo,String)])
 type FileMap = M.Map LineInfo String
@@ -28,7 +29,7 @@ readFileMap f = liftM toFileMap $ readRawFileList f
 
 -- |Very naive log file reader.
 getLogLine :: FileMap -> LineInfo -> IO B.ByteString
-getLogLine fMap lineInfo = do
+getLogLine fMap lineInfo = unsafeInterleaveIO $ do
   contents <- B.readFile fileName
   return $ genericIndex (B.lines $ decompress contents) line
     where fileName = getFileName fMap lineInfo
