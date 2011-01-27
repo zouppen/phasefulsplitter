@@ -6,7 +6,7 @@ module Ngram where
 
 import Data.Binary
 import qualified Data.Map as M
-import Control.Parallel.Strategies
+import Control.DeepSeq
 import Control.Monad (liftM2)
 
 data Location = BeginEnd | Begin | In | End  deriving (Show,Read,Ord,Eq)

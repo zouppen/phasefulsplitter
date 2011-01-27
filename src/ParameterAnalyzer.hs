@@ -42,7 +42,7 @@ combineF = M.unionsWith resourceSum
 mappingF :: [Entry] -> M.Map String ResourceStat
 mappingF = foldl' insertToPool M.empty
 
-reduceF = mapReduce rwhnf mappingF rwhnf combineF
+reduceF = mapReduce rseq mappingF rseq combineF
 
 flatMap :: M.Map String ResourceStat 
         -> M.Map String (M.Map String [Ngram Char])
